@@ -171,12 +171,14 @@ class TestClientProto(TestBase):
         )
 
     def test_unary_stream_can_be_cancel(self):
-        responses = server_streaming_method(self._stub)
+        responses = server_streaming_method(self._stub, serialize=False)
         for i, _ in enumerate(responses):
             if i == 1:
                 responses.cancel()
                 break
-        sleep(10)
+
+        self.assertEqual(responses.code(), grpc.StatusCode.CANCELLED)
+
         self.server.stop(None)
         self.channel.close()
         spans = self.memory_exporter.get_finished_spans()
