@@ -8,6 +8,9 @@ import pytest
 import vertexai
 import yaml
 from google.auth.credentials import AnonymousCredentials
+from vcr import VCR
+from vcr.record_mode import RecordMode
+from vcr.request import Request
 
 from opentelemetry import trace
 
@@ -19,10 +22,6 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 )
 
 pytest_plugins = []
-
-from vcr import VCR
-from vcr.record_mode import RecordMode
-from vcr.request import Request
 
 
 @pytest.fixture(scope="session")
