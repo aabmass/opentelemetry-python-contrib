@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+
+extensions:
+  googleclientauth:
+    project: ${GOOGLE_CLOUD_PROJECT}
+    quota_project: ${GOOGLE_CLOUD_QUOTA_PROJECT}
+    scopes:
+      - "https://www.googleapis.com/auth/trace.append"
+      - "https://www.googleapis.com/auth/cloud-platform"
+
+processors:
+  resource:
+    attributes:
+      - key: gcp.project_id
+        value: ${GOOGLE_CLOUD_PROJECT}
+        action: insert
+
+exporters:
+  googlecloud:
+    project: ${GOOGLE_CLOUD_PROJECT}
+    log:
+      default_log_name: "collector-otlp-logs"
+  otlp:
+    endpoint: https://telemetry.us-central1.rep.googleapis.com:443
+    auth:
+      authenticator: googleclientauth
+
+service:
+  extensions: [googleclientauth]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [googlecloud]
