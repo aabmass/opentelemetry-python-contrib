@@ -73,9 +73,23 @@ interactions:
           "usageMetadata": {
             "promptTokenCount": 25,
             "candidatesTokenCount": 9,
-            "totalTokenCount": 34
+            "totalTokenCount": 34,
+            "promptTokensDetails": [
+              {
+                "modality": 1,
+                "tokenCount": 25
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": 1,
+                "tokenCount": 9
+              }
+            ]
           },
-          "modelVersion": "gemini-1.5-flash-002"
+          "modelVersion": "gemini-1.5-flash-002",
+          "createTime": "2025-02-03T23:33:06.046251Z",
+          "responseId": "MlKhZ6vpAoifnvgPhceYyA4"
         }
     headers:
       Content-Type:
@@ -87,7 +101,7 @@ interactions:
       - X-Origin
       - Referer
       content-length:
-      - '422'
+      - '715'
     status:
       code: 200
       message: OK
