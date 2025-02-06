@@ -15,5 +15,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#3208](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/3208))
 - VertexAI emit user, system, and assistant events
   ([#3203](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/3203))
-- Add Vertex gen AI response span attributes
+- Add Vertex gen AI response attributes and `gen_ai.choice` events
   ([#3227](https://github.com/open-telemetry/opentelemetry-python-contrib/pull/3227))

@@ -26,13 +26,17 @@ from typing import (
 )
 from urllib.parse import urlparse
 
+from google.protobuf import json_format
+
 from opentelemetry._events import Event
 from opentelemetry.instrumentation.vertexai.events import (
     ChoiceMessage,
+    ChoiceToolCall,
     FinishReason,
     assistant_event,
     choice_event,
     system_event,
+    tool_event,
     user_event,
 )
 from opentelemetry.semconv._incubating.attributes import (
@@ -216,12 +220,39 @@ def request_to_events(
             )
 
             yield assistant_event(role=content.role, content=request_content)
-        # Assume user event but role should be "user"
-        else:
-            request_content = _parts_to_any_value(
-                capture_content=capture_content, parts=content.parts
+            continue
+
+        # Tool event.
+        # NOTE: For VertexAI, tool/function results may actually be additional
+        # parts inside of a user message or in a separate content entry without a role so. See:
+        # https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
+        #
+        # For now, just duplicate the data into separate events. It might be cleaner for
+        # semconv to emit one event per part instead.
+        function_responses = [
+            part.function_response
+            for part in content.parts
+            if "function_response" in part
+        ]
+        for i, function_response in enumerate(function_responses):
+            yield tool_event(
+                id_=f"{function_response.name}_{i}",
+                role=content.role,
+                content=json_format.MessageToDict(
+                    function_response._pb.response  # type: ignore[reportUnknownMemberType]
+                )
+                if capture_content
+                else None,
             )
-            yield user_event(role=content.role, content=request_content)
+
+        if len(function_responses) == len(content.parts):
+            # If the content only contained function responses, don't emit a user event
+            continue
+
+        request_content = _parts_to_any_value(
+            capture_content=capture_content, parts=content.parts
+        )
+        yield user_event(role=content.role, content=request_content)
 
 
 def response_to_events(
@@ -231,6 +262,19 @@ def response_to_events(
     capture_content: bool,
 ) -> Iterable[Event]:
     for candidate in response.candidates:
+        # NOTE: since function_call appears in content.parts, it will also be in the choice
+        # event's content. This is different from OpenAI where the tool calls are outside of
+        # content: https://platform.openai.com/docs/api-reference/chat/object. I would prefer
+        # not to filter from choice event to keep indexing obvious.
+        #
+        # There is similarly a pair of executable_code and
+        # code_execution_result which are similar to tool call in that the model is asking for
+        # you to do something rather than generating content:
+        # https://github.com/googleapis/googleapis/blob/ae87dc8a3830f37d575e2cff577c9b5a4737176b/google/cloud/aiplatform/v1beta1/content.proto#L123-L128
+        tool_calls = _extract_tool_calls(
+            candidate=candidate, capture_content=capture_content
+        )
+
         yield choice_event(
             finish_reason=_map_finish_reason(candidate.finish_reason),
             index=candidate.index,
@@ -241,6 +285,31 @@ def response_to_events(
                     capture_content=capture_content,
                     parts=candidate.content.parts,
                 ),
+            ),
+            tool_calls=tool_calls,
+        )
+
+
+def _extract_tool_calls(
+    *,
+    candidate: content.Candidate | content_v1beta1.Candidate,
+    capture_content: bool,
+) -> Iterable[ChoiceToolCall]:
+    for i, part in enumerate(candidate.content.parts):
+        if "function_call" not in part:
+            continue
+
+        yield ChoiceToolCall(
+            # Make up an id with index since vertex expects the indices to line up instead of
+            # using ids.
+            id=f"{part.function_call.name}_{i}",
+            function=ChoiceToolCall.Function(
+                name=part.function_call.name,
+                arguments=json_format.MessageToDict(
+                    part.function_call._pb.args  # type: ignore[reportUnknownMemberType]
+                )
+                if capture_content
+                else None,
             ),
         )
 
