@@ -1,0 +1,151 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Get weather details in New Delhi and San Francisco?"
+              }
+            ]
+          },
+          {
+            "role": "model",
+            "parts": [
+              {
+                "functionCall": {
+                  "name": "get_current_weather",
+                  "args": {
+                    "location": "New Delhi"
+                  }
+                }
+              },
+              {
+                "functionCall": {
+                  "name": "get_current_weather",
+                  "args": {
+                    "location": "San Francisco"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "parts": [
+              {
+                "functionResponse": {
+                  "name": "get_current_weather",
+                  "response": {
+                    "content": "{\"temperature\": 35, \"unit\": \"C\"}"
+                  }
+                }
+              },
+              {
+                "functionResponse": {
+                  "name": "get_current_weather",
+                  "response": {
+                    "content": "{\"temperature\": 25, \"unit\": \"C\"}"
+                  }
+                }
+              },
+              {
+                "text": "Please respond in French"
+              }
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                  "type": 6,
+                  "properties": {
+                    "location": {
+                      "type": 1,
+                      "description": "The location for which to get the weather. It can be a city name, a city name and state, or a zip code. Examples: 'San Francisco', 'San Francisco, CA', '95616', etc."
+                    }
+                  },
+                  "propertyOrdering": [
+                    "location"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1797'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.3
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-1.5-flash-002:generateContent?%24alt=json%3Benum-encoding%3Dint
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "La temp\u00e9rature actuelle \u00e0 New Delhi est de 35 degr\u00e9s Celsius et \u00e0 San Francisco, de 25 degr\u00e9s Celsius.\n"
+                  }
+                ]
+              },
+              "finishReason": 1,
+              "avgLogprobs": -0.13563571526454046
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 130,
+            "candidatesTokenCount": 26,
+            "totalTokenCount": 156,
+            "promptTokensDetails": [
+              {
+                "modality": 1,
+                "tokenCount": 130
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": 1,
+                "tokenCount": 26
+              }
+            ]
+          },
+          "modelVersion": "gemini-1.5-flash-002",
+          "createTime": "2025-02-06T18:23:19.079289Z",
+          "responseId": "F_6kZ7nrBNa5nvgP1YzPmQE"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '794'
+    status:
+      code: 200
+      message: OK
+version: 1

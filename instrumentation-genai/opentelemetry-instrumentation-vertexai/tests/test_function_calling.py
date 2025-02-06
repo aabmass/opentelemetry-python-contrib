@@ -309,6 +309,70 @@ def test_tool_events_no_content(
     }
 
 
+@pytest.mark.vcr
+def test_tool_events_breakthings(
+    span_exporter: InMemorySpanExporter,
+    log_exporter: InMemoryLogExporter,
+    instrument_with_content: VertexAIInstrumentor,
+):
+    model = GenerativeModel("gemini-1.5-flash-002", tools=[weather_tool()])
+    model.generate_content(
+        [
+            # User asked about weather
+            Content(
+                role="user",
+                parts=[
+                    Part.from_text(
+                        "Get weather details in New Delhi and San Francisco?"
+                    ),
+                ],
+            ),
+            # Model requests two function calls
+            Content(
+                role="model",
+                parts=[
+                    Part.from_dict(
+                        {
+                            "function_call": {
+                                "name": "get_current_weather",
+                                "args": {"location": "New Delhi"},
+                            }
+                        },
+                    ),
+                    Part.from_dict(
+                        {
+                            "function_call": {
+                                "name": "get_current_weather",
+                                "args": {"location": "San Francisco"},
+                            }
+                        },
+                    ),
+                ],
+            ),
+            # User responds with function responses and asks for french
+            Content(
+                role="user",
+                parts=[
+                    Part.from_function_response(
+                        name="get_current_weather",
+                        response={
+                            "content": '{"temperature": 35, "unit": "C"}'
+                        },
+                    ),
+                    Part.from_function_response(
+                        name="get_current_weather",
+                        response={
+                            "content": '{"temperature": 25, "unit": "C"}'
+                        },
+                    ),
+                    # NOTE: User message too
+                    Part.from_text("Please respond in French"),
+                ],
+            ),
+        ]
+    )
+
+
 def weather_tool() -> Tool:
     # Adapted from https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#parallel-samples
     get_current_weather_func = FunctionDeclaration(
