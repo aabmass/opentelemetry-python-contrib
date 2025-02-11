@@ -5,18 +5,34 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "duckduckgo-search>=7.3.0",
+    "langchain-community>=0.3.16",
     "langchain-core>=0.3.31",
     "langchain-google-vertexai>=2.0.7",
     "langgraph>0.2.27",
     "opentelemetry-distro>=0.50b0",
+    "opentelemetry-exporter-gcp-logging>=1.9.0a0",
+    "opentelemetry-exporter-gcp-trace>=1.8.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
+    "opentelemetry-instrumentation-aiohttp-client>=0.50b0",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    "opentelemetry-instrumentation-requests>=0.50b0",
+    "opentelemetry-instrumentation-sqlite3>=0.51b0",
+    "opentelemetry-instrumentation-urllib>=0.50b0",
+    "opentelemetry-instrumentation-urllib3>=0.50b0",
     "opentelemetry-instrumentation-vertexai",
+    "streamlit>=1.41.1",
 ]
 
 [tool.uv.sources]
-opentelemetry-instrumentation-vertexai = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git", subdirectory = "instrumentation-genai/opentelemetry-instrumentation-vertexai", branch = "vertex-langgraph" }
+opentelemetry-instrumentation-vertexai = { path = "../../" }
 
 [dependency-groups]
-dev = [
-    "ruff>=0.9.2",
-]
+dev = ["ipython>=8.18.1", "ruff>=0.9.2"]
+
+[project.entry-points.opentelemetry_traces_exporter]
+otlp_google_auth = "langgraph_chatbot_demo._otlp_google_auth:OTLPSpanExporterGoogleAuth"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

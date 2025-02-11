@@ -1,33 +1,32 @@
-This sample contains part of the LangGraph chatbot demo taken from
-https://python.langchain.com/docs/tutorials/chatbot, running with OTel instrumentation. It
-sends traces and logs to the OTel collector which sends them to GCP. Docker compose wraps
-everything to make it easy to run.
+This sample contains a Streamlit + LangGraph chatbot demo. It sends traces and logs to the GCP
+with the OTLP exporter and opentelemetry-exporter-gcp-logging exporters.
+
+The `run_streamlit.py` script allows you to easily run the sample with auto instrumentation
+enabled and sending telemetry to GCP. It just sets some environment variables and runs with
+`opentelemetry-instrument.
 
 ## Running the example
 
-I recommend running in Cloud Shell, it's super simple. You will see GenAI spans in trace
-explorer right away. Make sure the Vertex and Trace APIs are enabled in the project.
+First, make sure you have `uv` installed: https://docs.astral.sh/uv/getting-started/installation/.
 
-### Cloud Shell or GCE
+Optionally, set a project with `export GOOGLE_CLOUD_PROJECT=...`. The app respects ADC.
+
+### Without cloning
 
 ```sh
-git clone --branch=vertex-langgraph https://github.com/aabmass/opentelemetry-python-contrib.git
-cd opentelemetry-python-contrib/instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo
-docker compose up --build --abort-on-container-exit
+uv run --upgrade https://raw.githubusercontent.com/aabmass/opentelemetry-python-contrib/refs/heads/vertex-langgraph/instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo/run_streamlit.py
 ```
 
-### Locally with Application Default Credentials
+### With cloned repo
 
 ```sh
 git clone --branch=vertex-langgraph https://github.com/aabmass/opentelemetry-python-contrib.git
 cd opentelemetry-python-contrib/instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo
+uv run run_streamlit_local.py
+```
 
-# Export the credentials to `GOOGLE_APPLICATION_CREDENTIALS` environment variable so it is
-# available inside the docker containers
-export GOOGLE_APPLICATION_CREDENTIALS=$HOME/.config/gcloud/application_default_credentials.json
-# Lets collector read mounted config
-export USERID="$(id -u)"
-# Specify the project ID
-export GOOGLE_CLOUD_PROJECT=<your project id>
-docker compose up --build --abort-on-container-exit
+### Without auto instrumentation
+
+```sh
+uv run streamlit run src/langgraph_chatbot_demo/langchain_history.py
 ```
