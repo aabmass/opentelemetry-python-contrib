@@ -1,10 +1,19 @@
+from __future__ import annotations
+
 from textwrap import dedent
 
 import google.auth
 import pandas as pd
 import streamlit as st
+from langchain_core.messages.base import BaseMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import Engine, inspect
+
+
+@st.cache_data
+def _get_project_id() -> str:
+    project_id: str = google.auth.default()[1]  # type: ignore
+    return project_id
 
 
 def render_intro() -> None:
@@ -90,8 +99,41 @@ def render_sidebar(checkpointer: InMemorySaver) -> None:
         on_change=on_create,
     )
 
-    _, project_id = google.auth.default()  # type: ignore
     st.link_button(
         "View in Google Cloud Trace",
-        f"https://console.cloud.google.com/traces/explorer;query=%7B%22plotType%22:%22HEATMAP%22,%22targetAxis%22:%22Y1%22,%22traceQuery%22:%7B%22resourceContainer%22:%22projects%2F{project_id}%2Flocations%2Fglobal%2FtraceScopes%2F_Default%22,%22spanDataValue%22:%22SPAN_DURATION%22,%22spanFilters%22:%7B%22attributes%22:%5B%5D,%22displayNames%22:%5B%22chain%20invoke%22%5D,%22isRootSpan%22:true,%22kinds%22:%5B%5D,%22maxDuration%22:%22%22,%22minDuration%22:%22%22,%22services%22:%5B%5D,%22status%22:%5B%5D%7D%7D%7D;duration=PT30M",
+        _trace_url(),
+        icon=":material/account_tree:",
     )
+
+
+def styles() -> None:
+    st.html("""\
+    <style>
+        .stChatMessage { padding: 16px; }
+        .stChatMessage .stLinkButton { text-align: right; }
+    </style>
+    """)
+
+
+def render_message(message: BaseMessage, trace_id: str | None) -> None:
+    # Filter out tool calls
+    if not (message.type in ("human", "ai") and message.content):
+        return
+
+    with st.chat_message(message.type):
+        col1, col2 = st.columns([0.9, 0.1])
+        col1.markdown(message.content)
+        if trace_id:
+            col2.link_button(
+                "",
+                _trace_url(trace_id),
+                icon=":material/account_tree:",
+                help="Open in Cloud Trace",
+            )
+
+
+def _trace_url(trace_id: str | None = None) -> str:
+    url = f"https://console.cloud.google.com/traces/explorer;query=%7B%22plotType%22:%22HEATMAP%22,%22targetAxis%22:%22Y1%22,%22traceQuery%22:%7B%22resourceContainer%22:%22projects%2F{_get_project_id()}%2Flocations%2Fglobal%2FtraceScopes%2F_Default%22,%22spanDataValue%22:%22SPAN_DURATION%22,%22spanFilters%22:%7B%22attributes%22:%5B%5D,%22displayNames%22:%5B%22chain%20invoke%22%5D,%22isRootSpan%22:true,%22kinds%22:%5B%5D,%22maxDuration%22:%22%22,%22minDuration%22:%22%22,%22services%22:%5B%5D,%22status%22:%5B%5D%7D%7D%7D;duration=PT30M"
+    if not trace_id:
+        return url
+    return f"{url};traceId={trace_id}"

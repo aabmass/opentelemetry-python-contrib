@@ -331,7 +331,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-aiplatform"
-version = "1.79.0"
+version = "1.80.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -347,9 +347,9 @@ dependencies = [
     { name = "shapely" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/8e/93e9f5a7059883c21a82adf8687248c6615d4b833b3bf665631a768b8ebd/google_cloud_aiplatform-1.79.0.tar.gz", hash = "sha256:362bfd16716dcfb6c131736f25246790002b29c99a246fcf4c08a7c71bd2301f", size = 8455732 }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/88/d36384280cc4653e190a4a30025e66b285fbaef06024f68a4264cc588a33/google_cloud_aiplatform-1.80.0.tar.gz", hash = "sha256:bcaa4570a6fb56d3d29cb6b8f92588d4d1a1931de5f90cf07761853dab4c76fd", size = 8459480 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/df/a7629fc1c405ead82249a70903068992932cc5a8c494c396e22995b4429d/google_cloud_aiplatform-1.79.0-py2.py3-none-any.whl", hash = "sha256:e52d518c386ce2b4ce57f1b73b46c57531d9a6ccd70c21a37b349f428bfc1c3f", size = 7086167 },
+    { url = "https://files.pythonhosted.org/packages/b5/57/5e761e7a8b03efc8e7faa4c0b2775991177bbd4dae7a6656a60dfd092ca8/google_cloud_aiplatform-1.80.0-py2.py3-none-any.whl", hash = "sha256:45d2a170f22431dae977551eccb740400bdb899807d0c8d4c16c53b2c1dbc6a5", size = 7089949 },
 ]
 
 [[package]]
@@ -818,7 +818,7 @@ wheels = [
 [[package]]
 name = "langgraph-chatbot-demo"
 version = "0.1.0"
-source = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git?subdirectory=instrumentation-genai%2Fopentelemetry-instrumentation-vertexai%2Fexamples%2Flanggraph-chatbot-demo&branch=vertex-langgraph#441d9f6440e895957ebb982fd5fc1ae6d2731f46" }
+source = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git?subdirectory=instrumentation-genai%2Fopentelemetry-instrumentation-vertexai%2Fexamples%2Flanggraph-chatbot-demo&branch=vertex-langgraph#833be299733a585349eca5bbc3f4977a6760e0be" }
 dependencies = [
     { name = "duckduckgo-search" },
     { name = "langchain-community" },
@@ -1268,7 +1268,7 @@ wheels = [
 [[package]]
 name = "opentelemetry-instrumentation-vertexai"
 version = "2.1b0.dev0"
-source = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git?subdirectory=instrumentation-genai%2Fopentelemetry-instrumentation-vertexai&branch=vertex-langgraph#441d9f6440e895957ebb982fd5fc1ae6d2731f46" }
+source = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git?subdirectory=instrumentation-genai%2Fopentelemetry-instrumentation-vertexai&branch=vertex-langgraph#833be299733a585349eca5bbc3f4977a6760e0be" }
 dependencies = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-instrumentation" },

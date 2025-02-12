@@ -35,7 +35,10 @@ def run_streamlit() -> None:
     setenv_default("OTEL_RESOURCE_ATTRIBUTES", f"gcp.project_id={project_id}")
 
     # Hide metadata and token refreshes
-    setenv_default("OTEL_PYTHON_EXCLUDED_URLS", "computeMetadata")
+    setenv_default(
+        "OTEL_PYTHON_EXCLUDED_URLS",
+        "computeMetadata,oauth2.googleapis.com",
+    )
 
     langchain_app_spec = importlib.util.find_spec(
         "langgraph_chatbot_demo.langchain_history"
