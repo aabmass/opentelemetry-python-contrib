@@ -1,7 +1,6 @@
 import importlib.util
 import os
 import subprocess
-import sys
 
 import google.auth
 import google.auth.transport
@@ -14,11 +13,6 @@ def setenv_default(k: str, v: str) -> None:
 
 
 def run_streamlit() -> None:
-    # This is used to populate uv cache in docker build without actually running the script
-    if os.environ.get("DRY_RUN"):
-        print("Just exit")
-        sys.exit(0)
-
     creds, project_id = google.auth.default()
     creds.refresh(google.auth.transport.requests.Request())
 
