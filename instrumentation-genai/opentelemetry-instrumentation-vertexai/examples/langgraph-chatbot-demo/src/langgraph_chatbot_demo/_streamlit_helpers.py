@@ -11,7 +11,7 @@ from sqlalchemy import Engine, inspect
 
 
 @st.cache_data
-def _get_project_id() -> str:
+def get_project_id() -> str:
     project_id: str = google.auth.default()[1]  # type: ignore
     return project_id
 
@@ -117,12 +117,20 @@ def styles() -> None:
 
 def render_message(message: BaseMessage, trace_id: str | None) -> None:
     # Filter out tool calls
-    if not (message.type in ("human", "ai") and message.content):
+    if message.type not in ("human", "ai"):
+        return
+
+    content = (
+        message.content
+        if isinstance(message.content, str)
+        else message.content[-1]["text"]
+    ).strip()
+    if not content:
         return
 
     with st.chat_message(message.type):
         col1, col2 = st.columns([0.9, 0.1])
-        col1.markdown(message.content)
+        col1.markdown(content)
         if trace_id:
             col2.link_button(
                 "",
@@ -133,7 +141,7 @@ def render_message(message: BaseMessage, trace_id: str | None) -> None:
 
 
 def _trace_url(trace_id: str | None = None) -> str:
-    url = f"https://console.cloud.google.com/traces/explorer;query=%7B%22plotType%22:%22HEATMAP%22,%22targetAxis%22:%22Y1%22,%22traceQuery%22:%7B%22resourceContainer%22:%22projects%2F{_get_project_id()}%2Flocations%2Fglobal%2FtraceScopes%2F_Default%22,%22spanDataValue%22:%22SPAN_DURATION%22,%22spanFilters%22:%7B%22attributes%22:%5B%5D,%22displayNames%22:%5B%22chain%20invoke%22%5D,%22isRootSpan%22:true,%22kinds%22:%5B%5D,%22maxDuration%22:%22%22,%22minDuration%22:%22%22,%22services%22:%5B%5D,%22status%22:%5B%5D%7D%7D%7D;duration=PT30M"
+    url = f"https://console.cloud.google.com/traces/explorer;query=%7B%22plotType%22:%22HEATMAP%22,%22targetAxis%22:%22Y1%22,%22traceQuery%22:%7B%22resourceContainer%22:%22projects%2F{get_project_id()}%2Flocations%2Fglobal%2FtraceScopes%2F_Default%22,%22spanDataValue%22:%22SPAN_DURATION%22,%22spanFilters%22:%7B%22attributes%22:%5B%5D,%22displayNames%22:%5B%22chain%20invoke%22%5D,%22isRootSpan%22:true,%22kinds%22:%5B%5D,%22maxDuration%22:%22%22,%22minDuration%22:%22%22,%22services%22:%5B%5D,%22status%22:%5B%5D%7D%7D%7D;duration=PT30M"
     if not trace_id:
         return url
     return f"{url};traceId={trace_id}"
