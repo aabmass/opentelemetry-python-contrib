@@ -33,6 +33,7 @@ def run_streamlit() -> None:
         "OTEL_PYTHON_EXCLUDED_URLS",
         "computeMetadata,oauth2.googleapis.com",
     )
+    # subprocess.run(["opentelemetry-instrument", "ipython"])
 
     langchain_app_spec = importlib.util.find_spec(
         "langgraph_chatbot_demo.langchain_history"
