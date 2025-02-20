@@ -2,8 +2,11 @@
 
 import sqlite3
 import tempfile
+import pathlib
 from os import environ
 from random import getrandbits
+from typing import cast
+from google.cloud.exceptions import NotFound
 
 import streamlit as st
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
@@ -23,6 +26,8 @@ from sqlalchemy import Engine, create_engine
 from opentelemetry import trace
 from opentelemetry.trace.span import format_trace_id
 
+from google.cloud import storage
+
 _ = """
 Ideas for things to add:
 
@@ -39,10 +44,7 @@ st.title(title)
 _streamlit_helpers.styles()
 
 
-model = ChatVertexAI(
-    model="gemini-1.5-flash",
-    project=environ.get("GOOGLE_CLOUD_PROJECT", None),
-)
+model = ChatVertexAI(model="gemini-1.5-flash")
 
 if not st.query_params.get("thread_id"):
     result = model.invoke(
@@ -52,6 +54,8 @@ if not st.query_params.get("thread_id"):
         seed=getrandbits(31),
     )
     st.query_params.thread_id = str(result.content).strip()
+if "upload_key" not in st.session_state:
+    st.session_state.upload_key = 0
 
 
 # Initialize memory to persist state between graph runs
@@ -63,6 +67,21 @@ def get_checkpointer() -> InMemorySaver:
 checkpointer = get_checkpointer()
 with st.sidebar.container():
     _streamlit_helpers.render_sidebar(checkpointer)
+
+
+@st.cache_resource
+def get_storage_bucket() -> storage.Bucket:
+    storage_client = storage.Client()
+    bucket_name = (
+        f"{_streamlit_helpers.get_project_id()}-langgraph-chatbot-storage"
+    )
+    try:
+        return storage_client.get_bucket(bucket_name)
+    except NotFound:
+        return storage_client.create_bucket(bucket_name)
+
+
+bucket = get_storage_bucket()
 
 
 # Define the tools for the agent to use
@@ -154,8 +173,30 @@ with col1:
         _streamlit_helpers.render_message(message, trace_id)
 
 # If user inputs a new prompt, generate and draw a new response
+# TODO: see if st.form() looks better
+file_upload = st.file_uploader(
+    "Upload an image",
+    type=["png", "jpg", "jpeg", "pdf", "webp"],
+    # Hack to clear the upload
+    key=f"file_uploader_{st.session_state.upload_key}",
+)
 if prompt := st.chat_input():
-    message = HumanMessage(prompt)
+    content = []
+
+    # Put the image first https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-understanding#best-practices
+    if file_upload:
+        filename: str = file_upload.name
+        blob = bucket.blob(filename)
+        blob.upload_from_file(file_upload, content_type=file_upload.type)
+        st.session_state.upload_key += 1
+
+        uri = f"gs://{bucket.name}/{blob.name}"
+        content.append({"type": "image_url", "image_url": {"url": uri}})
+
+    content.append({"type": "text", "text": prompt})
+
+    message = HumanMessage(content)
+
     with col1:
         with tracer.start_as_current_span(
             "chain invoke",

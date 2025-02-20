@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "duckduckgo-search>=7.3.0",
+    "google-cloud-storage[tracing]>=2.19.0",
     "langchain-community>=0.3.16",
     "langchain-core>=0.3.31",
     "langchain-google-vertexai>=2.0.7",
