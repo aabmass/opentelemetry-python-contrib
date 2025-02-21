@@ -8,6 +8,12 @@ dependencies = [
   "opentelemetry-sdk",
   "opentelemetry-semantic-conventions",
   "opentelemetry-test-utils",
+  "opentelemetry-proto",
+  "opentelemetry-exporter-otlp-proto-common",
+  "opentelemetry-exporter-otlp-proto-grpc",
+  "opentelemetry-exporter-otlp-proto-http",
+  "opentelemetry-exporter-otlp",
+  "opentelemetry-distro",
   "opentelemetry-exporter-prometheus-remote-write",
   "opentelemetry-exporter-richconsole",
   "opentelemetry-instrumentation",
@@ -64,6 +70,7 @@ dependencies = [
   "opentelemetry-util-http",
   "opentelemetry-instrumentation-vertexai[instruments]",
   "opentelemetry-instrumentation-openai-v2[instruments]",
+  "langgraph-chatbot-demo"
 ]
 
 # https://docs.astral.sh/uv/reference/settings/
@@ -77,6 +84,12 @@ opentelemetry-api = { git = "https://github.com/open-telemetry/opentelemetry-pyt
 opentelemetry-sdk = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-sdk" }
 opentelemetry-semantic-conventions = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-semantic-conventions" }
 opentelemetry-test-utils = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "tests/opentelemetry-test-utils" }
+opentelemetry-proto = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-proto" }
+opentelemetry-exporter-otlp-proto-common = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "exporter/opentelemetry-exporter-otlp-proto-common" }
+opentelemetry-exporter-otlp-proto-grpc = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "exporter/opentelemetry-exporter-otlp-proto-grpc" }
+opentelemetry-exporter-otlp-proto-http = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "exporter/opentelemetry-exporter-otlp-proto-http" }
+opentelemetry-exporter-otlp = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "exporter/opentelemetry-exporter-otlp" }
+opentelemetry-distro = { workspace = true }
 opentelemetry-exporter-prometheus-remote-write = { workspace = true }
 opentelemetry-exporter-richconsole = { workspace = true }
 opentelemetry-instrumentation = { workspace = true }
@@ -133,13 +146,17 @@ opentelemetry-propagator-aws-xray = { workspace = true }
 opentelemetry-util-http = { workspace = true }
 opentelemetry-instrumentation-vertexai = { workspace = true }
 opentelemetry-instrumentation-openai-v2 = { workspace = true }
+langgraph-chatbot-demo = { workspace = true }
 
 # https://docs.astral.sh/uv/reference/settings/#workspace
 [tool.uv.workspace]
 members = [
-  "instrumentation/*",
-  "instrumentation-genai/*",
   "exporter/*",
+  "instrumentation-genai/*",
+  "instrumentation-genai/opentelemetry-instrumentation-vertexai",
+  "instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo",
+  "instrumentation/*",
+  "opentelemetry-distro",
   "opentelemetry-instrumentation",
   "propagator/*",
   "util/opentelemetry-util-http",

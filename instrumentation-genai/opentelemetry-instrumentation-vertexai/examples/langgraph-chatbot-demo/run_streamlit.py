@@ -5,7 +5,7 @@
 # ]
 #
 # [tool.uv.sources]
-# langgraph-chatbot-demo = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git", subdirectory = "instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo", branch = "vertex-langgraph" }
+# langgraph-chatbot-demo = { git = "https://github.com/aabmass/opentelemetry-python-contrib.git", subdirectory = "instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo", branch = "vertex-langgraph-uvworkspace" }
 #
 # ///
 

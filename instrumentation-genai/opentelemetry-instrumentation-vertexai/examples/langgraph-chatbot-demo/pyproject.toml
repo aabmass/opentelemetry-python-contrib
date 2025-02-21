@@ -11,22 +11,23 @@ dependencies = [
     "langchain-core>=0.3.31",
     "langchain-google-vertexai>=2.0.7",
     "langgraph>0.2.27",
-    "opentelemetry-distro>=0.50b0",
+    "opentelemetry-distro",
     "opentelemetry-exporter-gcp-logging>=1.9.0a0",
     "opentelemetry-exporter-gcp-trace>=1.8.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
-    "opentelemetry-instrumentation-aiohttp-client>=0.50b0",
-    "opentelemetry-instrumentation-httpx>=0.50b0",
-    "opentelemetry-instrumentation-requests>=0.50b0",
-    "opentelemetry-instrumentation-sqlite3>=0.51b0",
-    "opentelemetry-instrumentation-urllib>=0.50b0",
-    "opentelemetry-instrumentation-urllib3>=0.50b0",
+    "opentelemetry-instrumentation-aiohttp-client",
+    "opentelemetry-instrumentation-httpx",
+    "opentelemetry-instrumentation-requests",
+    "opentelemetry-instrumentation-sqlite3",
+    "opentelemetry-instrumentation-urllib",
+    "opentelemetry-instrumentation-urllib3",
     "opentelemetry-instrumentation-vertexai",
+    "opentelemetry-instrumentation>=0.51b0",
     "streamlit>=1.41.1",
 ]
 
 [tool.uv.sources]
-opentelemetry-instrumentation-vertexai = { path = "../../" }
+opentelemetry-instrumentation-vertexai = { workspace = true }
 
 [dependency-groups]
 dev = ["ipython>=8.18.1", "ruff>=0.9.2"]
