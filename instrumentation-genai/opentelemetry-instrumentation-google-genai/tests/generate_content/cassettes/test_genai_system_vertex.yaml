@@ -1,0 +1,84 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Does this work?"
+              }
+            ],
+            "role": "user"
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '72'
+      Content-Type:
+      - application/json
+      user-agent:
+      - google-genai-sdk/1.0.0 gl-python/3.13.1
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1beta1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "To answer whether \"this works\", I need some context! Please tell me what \"this\" refers to. For example, tell me:\n\n*   **What is it?** Is it a piece of code, a plan, a link, a machine, an idea, a recipe, etc.?\n*   **What is it supposed to do?** What is its intended purpose or function?\n*   **If it is code:** What language is it in? Please provide the code.\n*   **If it is a link:** What is the link?\n*   **If it's something else:** Please describe it as clearly as possible.\n\nOnce I have this information, I can try to help you determine if \"this works\" and, if not, why not.\n"
+                  }
+                ]
+              },
+              "finishReason": "STOP",
+              "avgLogprobs": -0.4083427007944306
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 4,
+            "candidatesTokenCount": 163,
+            "totalTokenCount": 167,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 163
+              }
+            ]
+          },
+          "modelVersion": "gemini-2.0-flash",
+          "createTime": "2025-02-25T05:05:35.713604Z",
+          "responseId": "n0-9Z4THK7XJhMIPibSk-Aw"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '1286'
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -7,15 +7,19 @@ from typing import Any, Mapping, MutableMapping
 
 import pytest
 import vertexai
+import google.genai
+import pytest
 import yaml
 from google.auth.credentials import AnonymousCredentials
 from vcr import VCR
 from vcr.record_mode import RecordMode
 from vcr.request import Request
 
-from opentelemetry.instrumentation.vertexai import VertexAIInstrumentor
-from opentelemetry.instrumentation.vertexai.utils import (
-    OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT,
+from opentelemetry.instrumentation.google_genai import (
+    GoogleGenAiSdkInstrumentor,
+)
+from opentelemetry.instrumentation.google_genai.flags import (
+    _CONTENT_RECORDING_ENV_VAR,
 )
 from opentelemetry.sdk._events import EventLoggerProvider
 from opentelemetry.sdk._logs import LoggerProvider
@@ -35,7 +39,10 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
     InMemorySpanExporter,
 )
 
+from .common.otel_assertions import OTelAssertions
+
 FAKE_PROJECT = "fake-project"
+FAKE_LOCATION = "us-central1"
 
 
 @pytest.fixture(scope="function", name="span_exporter")
@@ -79,8 +86,16 @@ def fixture_meter_provider(metric_reader):
     )
 
 
-@pytest.fixture(autouse=True)
-def vertexai_init(vcr: VCR) -> None:
+@pytest.fixture
+def otel_assertions(log_exporter, span_exporter, metric_reader):
+    return OTelAssertions(
+        logs_exporter=log_exporter,
+        span_exporter=span_exporter,
+        metric_reader=metric_reader,
+    )
+
+
+def _genai_client(vertexai: bool, vcr: VCR) -> google.genai.Client:
     # When not recording (in CI), don't do any auth. That prevents trying to read application
     # default credentials from the filesystem or metadata server and oauth token exchange. This
     # is not the interesting part of our instrumentation to test.
@@ -89,20 +104,30 @@ def vertexai_init(vcr: VCR) -> None:
     if vcr.record_mode == RecordMode.NONE:
         credentials = AnonymousCredentials()
         project = FAKE_PROJECT
-    vertexai.init(
-        api_transport="rest", credentials=credentials, project=project
+    return google.genai.Client(
+        vertexai=vertexai, project=project, credentials=credentials
     )
+
+
+@pytest.fixture
+def genai_client(vcr: VCR) -> google.genai.Client:
+    return _genai_client(vertexai=True, vcr=vcr)
+
+
+@pytest.fixture
+def genai_client_gemini(
+    vcr: VCR, request: pytest.FixtureRequest
+) -> google.genai.Client:
+    return _genai_client(vertexai=False, vcr=vcr)
 
 
 @pytest.fixture
 def instrument_no_content(
     tracer_provider, event_logger_provider, meter_provider
 ):
-    os.environ.update(
-        {OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "False"}
-    )
+    os.environ.update({_CONTENT_RECORDING_ENV_VAR: "False"})
 
-    instrumentor = VertexAIInstrumentor()
+    instrumentor = GoogleGenAiSdkInstrumentor()
     instrumentor.instrument(
         tracer_provider=tracer_provider,
         event_logger_provider=event_logger_provider,
@@ -110,7 +135,7 @@ def instrument_no_content(
     )
 
     yield instrumentor
-    os.environ.pop(OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT, None)
+    os.environ.pop(_CONTENT_RECORDING_ENV_VAR, None)
     instrumentor.uninstrument()
 
 
@@ -118,10 +143,8 @@ def instrument_no_content(
 def instrument_with_content(
     tracer_provider, event_logger_provider, meter_provider
 ):
-    os.environ.update(
-        {OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "True"}
-    )
-    instrumentor = VertexAIInstrumentor()
+    os.environ.update({_CONTENT_RECORDING_ENV_VAR: "True"})
+    instrumentor = GoogleGenAiSdkInstrumentor()
     instrumentor.instrument(
         tracer_provider=tracer_provider,
         event_logger_provider=event_logger_provider,
@@ -129,7 +152,7 @@ def instrument_with_content(
     )
 
     yield instrumentor
-    os.environ.pop(OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT, None)
+    os.environ.pop(_CONTENT_RECORDING_ENV_VAR, None)
     instrumentor.uninstrument()
 
 

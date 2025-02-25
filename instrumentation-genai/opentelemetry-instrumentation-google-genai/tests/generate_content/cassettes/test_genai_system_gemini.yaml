@@ -1,0 +1,82 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Does this work?"
+              }
+            ],
+            "role": "user"
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '72'
+      Content-Type:
+      - application/json
+      user-agent:
+      - google-genai-sdk/1.0.0 gl-python/3.13.1
+    method: POST
+    uri: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "Please provide me with the code or process you'd like me to evaluate. I need the code or a description of what you want to do to tell you if it works. \n\nFor example, you could say:\n\n* \"Does this Python code work to calculate the factorial of a number: `def factorial(n): if n == 0: return 1 else: return n * factorial(n-1)`?\"\n* \"Does this method of starting a car work: put the key in the ignition, turn it to the 'start' position?\"\n* \"Does this JavaScript code work to validate an email address: `function validateEmail(email) { ... }`\"\n\nThe more information you give me, the better I can help!\n"
+                  }
+                ],
+                "role": "model"
+              },
+              "finishReason": "STOP",
+              "avgLogprobs": -0.4348284892546825
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 4,
+            "candidatesTokenCount": 156,
+            "totalTokenCount": 160,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 156
+              }
+            ]
+          },
+          "modelVersion": "gemini-2.0-flash"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '1215'
+    status:
+      code: 200
+      message: OK
+version: 1

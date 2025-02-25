@@ -1,0 +1,84 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Does this work?"
+              }
+            ],
+            "role": "user"
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '72'
+      Content-Type:
+      - application/json
+      user-agent:
+      - google-genai-sdk/1.0.0 gl-python/3.13.1
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1beta1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "To determine if something \"works,\" I need more information. Please tell me:\n\n*   **What \"this\" refers to:** What is the code, process, device, system, or anything else you're asking about?\n*   **What is the intended purpose:** What is it supposed to do? What problem is it trying to solve?\n*   **What context is it being used in:** Where will it be implemented or used? Are there any specific environments, software versions, or hardware it needs to work with?\n\nFor example, instead of asking \"Does this work?\", ask:\n\n*   \"Does this Python code snippet, intended to calculate the factorial of a number, work correctly for positive integers up to 10?\"\n*   \"Does this air conditioner, installed in a 200 square foot room, work to effectively cool the room to 72 degrees Fahrenheit on a 90 degree day?\"\n*   \"Does this algorithm work to sort a list of 10,000 random numbers in ascending order within 1 second?\"\n\nThe more details you provide, the better I can understand your question and give you a helpful answer. I can help with code, concepts, or even general logic, but I need the specifics!\n"
+                  }
+                ]
+              },
+              "finishReason": "STOP",
+              "avgLogprobs": -0.5278408166133997
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 4,
+            "candidatesTokenCount": 264,
+            "totalTokenCount": 268,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 264
+              }
+            ]
+          },
+          "modelVersion": "gemini-2.0-flash",
+          "createTime": "2025-02-25T05:09:00.293524Z",
+          "responseId": "bFC9Z5T1EbCShMIPkfKYyAE"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '1811'
+    status:
+      code: 200
+      message: OK
+version: 1

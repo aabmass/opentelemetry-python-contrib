@@ -1,0 +1,84 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Does this work?"
+              }
+            ],
+            "role": "user"
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '72'
+      Content-Type:
+      - application/json
+      user-agent:
+      - google-genai-sdk/1.0.0 gl-python/3.13.1
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1beta1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "Please provide me with the \"this\" you are referring to. I need to know what you want me to evaluate to determine if it works. For example, you could ask:\n\n* \"Does this code work: `print('Hello, world!')`?\"\n* \"Does this sentence work grammatically: 'I is going to the store'?\"\n* \"Does this business idea work: Starting a dog-walking service in my neighborhood?\"\n* \"Does this app work: (link to app description)?\"\n\nOnce you give me the \"this,\" I can tell you if it works and why or why not.\n"
+                  }
+                ]
+              },
+              "finishReason": "STOP",
+              "avgLogprobs": -0.3529420009879179
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 4,
+            "candidatesTokenCount": 129,
+            "totalTokenCount": 133,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 4
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 129
+              }
+            ]
+          },
+          "modelVersion": "gemini-2.0-flash",
+          "createTime": "2025-02-25T04:50:39.226122Z",
+          "responseId": "H0y9Z8rmDbeImecPyKri8QM"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '1203'
+    status:
+      code: 200
+      message: OK
+version: 1

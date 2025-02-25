@@ -1,0 +1,93 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Does this work?"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "foo"
+            }
+          ],
+          "role": "user"
+        },
+        "generationConfig": {}
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '163'
+      Content-Type:
+      - application/json
+      user-agent:
+      - google-genai-sdk/1.0.0 gl-python/3.13.1
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1beta1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent
+  response:
+    body:
+      string: |-
+        {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "To answer whether \"this\" works, I need to know what \"this\" refers to. Please provide me with more context. For example:\n\n*   **What is the code or process you're referring to?** (e.g., \"Does this Python code work?\", \"Does this button on the website work?\")\n*   **Show me the code or describe the process.** (e.g., Paste the code snippet, explain the steps you're taking on the website)\n*   **What are you trying to achieve?** (e.g., \"I'm trying to sort a list\", \"I'm trying to submit a form\")\n\nOnce I have this information, I can help you determine if it works as expected and, if not, help you troubleshoot the issue.\n"
+                  }
+                ]
+              },
+              "finishReason": "STOP",
+              "avgLogprobs": -0.3037491986851492
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 5,
+            "candidatesTokenCount": 167,
+            "totalTokenCount": 172,
+            "promptTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 5
+              }
+            ],
+            "candidatesTokensDetails": [
+              {
+                "modality": "TEXT",
+                "tokenCount": 167
+              }
+            ]
+          },
+          "modelVersion": "gemini-2.0-flash",
+          "createTime": "2025-02-25T05:17:21.890861Z",
+          "responseId": "YVK9Z-2vNvDJhMIP55n3gAk"
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '1332'
+    status:
+      code: 200
+      message: OK
+version: 1
