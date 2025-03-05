@@ -39,6 +39,7 @@ API
 ---
 """
 
+import itertools
 from typing import Any, Collection
 
 from wrapt import (
@@ -49,15 +50,13 @@ from opentelemetry._events import get_event_logger
 from opentelemetry.instrumentation.instrumentor import BaseInstrumentor
 from opentelemetry.instrumentation.utils import unwrap
 from opentelemetry.instrumentation.vertexai.package import _instruments
-from opentelemetry.instrumentation.vertexai.patch import (
-    generate_content_create,
-)
+from opentelemetry.instrumentation.vertexai.patch import PatchedMethods
 from opentelemetry.instrumentation.vertexai.utils import is_content_enabled
 from opentelemetry.semconv.schemas import Schemas
 from opentelemetry.trace import get_tracer
 
 
-def _client_classes():
+def _methods_to_wrap():
     # This import is very slow, do it lazily in case instrument() is not called
 
     # pylint: disable=import-outside-toplevel
@@ -68,9 +67,12 @@ def _client_classes():
         client as client_v1beta1,
     )
 
-    return (
-        client.PredictionServiceClient,
-        client_v1beta1.PredictionServiceClient,
+    return itertools.product(
+        (
+            client.PredictionServiceClient,
+            client_v1beta1.PredictionServiceClient,
+        ),
+        ("generate_content", "stream_generate_content"),
     )
 
 
@@ -95,15 +97,16 @@ class VertexAIInstrumentor(BaseInstrumentor):
             event_logger_provider=event_logger_provider,
         )
 
-        for client_class in _client_classes():
+        patched_methods = PatchedMethods(
+            tracer, event_logger, is_content_enabled()
+        )
+        for client_class, method_name in _methods_to_wrap():
             wrap_function_wrapper(
                 client_class,
-                name="generate_content",
-                wrapper=generate_content_create(
-                    tracer, event_logger, is_content_enabled()
-                ),
+                name=method_name,
+                wrapper=getattr(patched_methods, method_name),
             )
 
     def _uninstrument(self, **kwargs: Any) -> None:
-        for client_class in _client_classes():
-            unwrap(client_class, "generate_content")
+        for client_class, method_name in _methods_to_wrap():
+            unwrap(client_class, method_name)
