@@ -102,6 +102,55 @@ def test_stream_generate_content(
 
 
 @pytest.mark.vcr
+def test_stream_generate_content_long(
+    span_exporter: InMemorySpanExporter,
+    log_exporter: InMemoryLogExporter,
+    instrument_with_content: VertexAIInstrumentor,
+):
+    model = GenerativeModel("gemini-1.5-flash-002")
+    list(
+        model.generate_content(
+            [
+                Content(
+                    role="user",
+                    parts=[
+                        Part.from_text(
+                            "Explain verbosely that this is a test in 5 paragraphs."
+                        )
+                    ],
+                ),
+            ],
+            stream=True,
+        )
+    )
+
+    # Emits span
+    spans = span_exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == "chat gemini-1.5-flash-002"
+    assert dict(spans[0].attributes) == {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.request.model": "gemini-1.5-flash-002",
+        "gen_ai.response.finish_reasons": ("stop",),
+        "gen_ai.response.model": "gemini-1.5-flash-002",
+        "gen_ai.system": "vertex_ai",
+        "gen_ai.usage.input_tokens": 13,
+        "gen_ai.usage.output_tokens": 478,
+        "server.address": "us-central1-aiplatform.googleapis.com",
+        "server.port": 443,
+    }
+
+    # Emits user and multiple choice events
+    logs = log_exporter.get_finished_logs()
+    assert len(logs) == 13
+    user_log, *choice_logs = [log_data.log_record for log_data in logs]
+
+    assert user_log.attributes["event.name"] == "gen_ai.user.message"
+    for choice_log in choice_logs:
+        assert choice_log.attributes["event.name"] == "gen_ai.choice"
+
+
+@pytest.mark.vcr
 @pytest.mark.skip(
     "Bug in client library "
     "https://github.com/googleapis/python-aiplatform/issues/5010"

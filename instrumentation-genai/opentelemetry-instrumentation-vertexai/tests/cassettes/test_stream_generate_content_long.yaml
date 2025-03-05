@@ -1,0 +1,273 @@
+interactions:
+- request:
+    body: |-
+      {
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Explain verbosely that this is a test in 5 paragraphs."
+              }
+            ]
+          }
+        ]
+      }
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '177'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.3
+    method: POST
+    uri: https://us-central1-aiplatform.googleapis.com/v1/projects/fake-project/locations/us-central1/publishers/google/models/gemini-1.5-flash-002:streamGenerateContent?%24alt=json%3Benum-encoding%3Dint
+  response:
+    body:
+      string: |-
+        [
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": "This"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {},
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " communication serves as a formal notification that the following interaction constitutes a test.  The"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " purpose of this test is to evaluate the capabilities and limitations of a particular system,"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " in this case, a language processing model.  It is not intended to be a genuine request for information or assistance in any real-world scenario.  Please"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " understand that any responses generated are purely for the purposes of analysis and should not be interpreted as factual, comprehensive, or suitable for application outside of this specific testing environment"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": ".  Consider this a controlled experiment, designed to measure performance and identify areas for potential improvement.\n\n\nThe nature of this test involves prompting the system with a variety of inputs designed to elicit diverse responses. These inputs may range from straightforward questions to"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " complex narratives, requiring nuanced understanding and creative generation of text.  The system's output will be carefully examined and scrutinized to assess its ability to process information accurately, generate coherent and grammatically correct text, and adapt its response style to"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " different types of prompts. This comprehensive analysis will contribute valuable data for refining and enhancing the system's overall functionality and effectiveness.\n\n\nIt is crucial to remember that this test is entirely artificial and devoid of real-world consequences. Any information provided within the test should be treated as hypothetical and not indicative of genuine knowledge or expertise"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " on the part of the system.  No actions or decisions should be taken based on the responses generated during this evaluation. The focus remains solely on the technical aspects of the system's performance, including its capacity for reasoning, problem-solving, and language generation within a predetermined testing framework.\n\n\nThe results obtained from this"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " test will be used internally to improve the system's capabilities and address any identified weaknesses. This is an ongoing process of refinement and enhancement. The data collected will contribute to the iterative development and improvement of the system's algorithms and underlying architecture, ultimately aiming to achieve more accurate, reliable, and efficient processing of information and"
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": " generation of text.  Consider this a vital stage in the continuous evolution of this technology.\n\n\nIn conclusion, this explicit declaration serves to reiterate that the current exchange is purely a test.  All interactions are strictly confined within this testing context and should not be interpreted as indicative of any operational readiness or real-world application."
+                    }
+                  ]
+                }
+              }
+            ],
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          },
+          {
+            "candidates": [
+              {
+                "content": {
+                  "role": "model",
+                  "parts": [
+                    {
+                      "text": "  The primary objective is to assess performance characteristics and inform future development efforts. Thank you for your understanding and participation in this essential evaluation process.\n"
+                    }
+                  ]
+                },
+                "finishReason": 1
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": 13,
+              "candidatesTokenCount": 478,
+              "totalTokenCount": 491,
+              "promptTokensDetails": [
+                {
+                  "modality": 1,
+                  "tokenCount": 13
+                }
+              ],
+              "candidatesTokensDetails": [
+                {
+                  "modality": 1,
+                  "tokenCount": 478
+                }
+              ]
+            },
+            "modelVersion": "gemini-1.5-flash-002",
+            "createTime": "2025-03-05T16:13:46.266718Z",
+            "responseId": "OnjIZ96jEJ3A-O4P68OL4AY"
+          }
+        ]
+    headers:
+      Content-Type:
+      - application/json; charset=UTF-8
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      - X-Origin
+      - Referer
+      content-length:
+      - '6856'
+    status:
+      code: 200
+      message: OK
+version: 1
