@@ -137,6 +137,7 @@ opentelemetry-propagator-aws-xray = { workspace = true }
 opentelemetry-util-http = { workspace = true }
 opentelemetry-util-genai = { workspace = true }
 opentelemetry-instrumentation-vertexai = { workspace = true }
+# opentelemetry-instrumentation-vertexai = { workspace = true }
 opentelemetry-instrumentation-openai-v2 = { workspace = true }
 
 # https://docs.astral.sh/uv/reference/settings/#workspace
