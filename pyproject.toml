@@ -131,7 +131,7 @@ opentelemetry-instrumentation-wsgi = { workspace = true }
 opentelemetry-propagator-ot-trace = { workspace = true }
 opentelemetry-propagator-aws-xray = { workspace = true }
 opentelemetry-util-http = { workspace = true }
-opentelemetry-instrumentation-vertexai = { workspace = true }
+# opentelemetry-instrumentation-vertexai = { workspace = true }
 opentelemetry-instrumentation-openai-v2 = { workspace = true }
 
 # https://docs.astral.sh/uv/reference/settings/#workspace
@@ -147,6 +147,8 @@ members = [
 # TODO: remove after python 3.8 is dropped
 exclude = [
   "instrumentation-genai/opentelemetry-instrumentation-google-genai",
+  # Having it in the workspace messes up tool.uv.sources {path = ...} type inclusions
+  "instrumentation-genai/opentelemetry-instrumentation-vertexai",
 ]
 
 [tool.ruff]
