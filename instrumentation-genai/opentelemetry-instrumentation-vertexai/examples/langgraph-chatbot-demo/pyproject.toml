@@ -21,7 +21,7 @@ dependencies = [
     "opentelemetry-instrumentation-sqlite3>=0.51b0",
     "opentelemetry-instrumentation-urllib>=0.50b0",
     "opentelemetry-instrumentation-urllib3>=0.50b0",
-    "opentelemetry-instrumentation-vertexai",
+    "opentelemetry-instrumentation-vertexai>=2.0b0",
     "streamlit>=1.41.1",
 ]
 
