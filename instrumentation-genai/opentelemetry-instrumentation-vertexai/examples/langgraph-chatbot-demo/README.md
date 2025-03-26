@@ -30,3 +30,23 @@ uv run run_streamlit_local.py
 ```sh
 uv run streamlit run src/langgraph_chatbot_demo/langchain_history.py
 ```
+
+## Deploy
+
+Build the docker image
+
+```sh
+PROJECT=<...>
+TAG=0.x.y
+
+# Update GIT_REF to a commit SHA to force rebuilding if the branch is updated
+docker build --build-arg GIT_REF=vertex-langgraph . -t us-central1-docker.pkg.dev/{$PROJECT}/oci/langgraph-chatbot-demo:${TAG}
+```
+
+### App Engine
+
+Use the included app.yaml
+
+```sh
+gcloud app deploy --image-url=us-central1-docker.pkg.dev/${PROJECT}/oci/langgraph-chatbot-demo:${TAG} app.yaml
+```
