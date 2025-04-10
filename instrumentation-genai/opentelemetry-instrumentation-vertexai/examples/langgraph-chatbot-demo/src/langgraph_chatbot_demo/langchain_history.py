@@ -4,6 +4,7 @@ import sqlite3
 import tempfile
 import pathlib
 from os import environ
+import logging
 from random import getrandbits
 from typing import cast
 from google.cloud.exceptions import NotFound
@@ -21,12 +22,16 @@ from langchain_google_vertexai import ChatVertexAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langgraph_chatbot_demo import _streamlit_helpers
+from langgraph_chatbot_demo.patched_vertexai import PatchedChatVertexAI
 from sqlalchemy import Engine, create_engine
 
 from opentelemetry import trace
 from opentelemetry.trace.span import format_trace_id
 
 from google.cloud import storage
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 _ = """
 Ideas for things to add:
@@ -44,7 +49,7 @@ st.title(title)
 _streamlit_helpers.styles()
 
 
-model = ChatVertexAI(model="gemini-1.5-flash")
+model = PatchedChatVertexAI(model="gemini-2.0-flash")
 
 if not st.query_params.get("thread_id"):
     result = model.invoke(
@@ -208,6 +213,7 @@ if prompt := st.chat_input():
             # Invoke the agent
             with st.spinner("Thinking..."):
                 res = app.invoke({"messages": [message]}, config=config)
+                logger.debug("agent response", extra={"response": str(res)})
 
             # Store trace ID for rendering
             trace_ids[message.id or ""] = trace_id
