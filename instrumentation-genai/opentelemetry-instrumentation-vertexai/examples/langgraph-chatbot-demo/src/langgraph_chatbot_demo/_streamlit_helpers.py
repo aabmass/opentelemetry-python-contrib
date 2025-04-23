@@ -125,6 +125,11 @@ def render_message(message: BaseMessage, trace_id: str | None) -> None:
         if isinstance(message.content, str)
         else message.content[-1]["text"]
     ).strip()
+
+    # Response was probably blocked by a harm category, go check the trace for details
+    if message.response_metadata.get("is_blocked", False):
+        content = ":red[:material/error: Response blocked, try again]"
+
     if not content:
         return
 
