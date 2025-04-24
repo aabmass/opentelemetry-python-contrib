@@ -1,15 +1,13 @@
 """Adapted from https://github.com/langchain-ai/streamlit-agent/blob/main/streamlit_agent/basic_memory.py"""
 
+import logging
 import sqlite3
 import tempfile
-import pathlib
-from os import environ
-import logging
 from random import getrandbits
-from typing import cast
-from google.cloud.exceptions import NotFound
 
 import streamlit as st
+from google.cloud import storage
+from google.cloud.exceptions import NotFound
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -18,7 +16,6 @@ from langchain_core.runnables.config import (
     RunnableConfig,
 )
 from langchain_core.tools import tool
-from langchain_google_vertexai import ChatVertexAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.prebuilt import create_react_agent
 from langgraph_chatbot_demo import _streamlit_helpers
@@ -27,8 +24,6 @@ from sqlalchemy import Engine, create_engine
 
 from opentelemetry import trace
 from opentelemetry.trace.span import format_trace_id
-
-from google.cloud import storage
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
