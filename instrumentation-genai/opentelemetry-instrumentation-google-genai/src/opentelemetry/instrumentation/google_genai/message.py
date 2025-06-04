@@ -13,6 +13,13 @@
 # limitations under the License.
 
 import logging
+
+from google.genai.types import (
+    Candidate,
+    Content,
+    Part,
+)
+
 from .message_models import (
     BlobPart,
     ChatMessage,
@@ -20,30 +27,12 @@ from .message_models import (
     FileDataPart,
     InputMessages,
     MessagePart,
-    SystemMessage,
     OutputMessages,
+    SystemMessage,
     TextPart,
     ToolCallPart,
     ToolCallResponsePart,
     UnknownPart,
-)
-
-from google.genai.models import t as transfomers
-
-from google.genai.types import (
-    BlockedReason,
-    Candidate,
-    Content,
-    ContentListUnion,
-    ContentListUnionDict,
-    ContentUnion,
-    GenerateContentConfig,
-    ContentUnionDict,
-    GenerateContentConfig,
-    GenerateContentConfigOrDict,
-    GenerateContentResponse,
-    Part,
-    PartUnion,
 )
 
 _logger = logging.getLogger(__name__)
@@ -87,7 +76,9 @@ def _to_chat_message(
     content: Content,
 ) -> ChatMessage:
     parts = content.parts or []
-    return ChatMessage(role="system", parts=[_to_part(part) for part in parts])
+    return ChatMessage(
+        role=content.role, parts=[_to_part(part) for part in parts]
+    )
 
 
 def _to_part(part: Part) -> MessagePart:

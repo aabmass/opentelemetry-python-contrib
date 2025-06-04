@@ -17,7 +17,10 @@ import logging
 import google.genai
 
 from opentelemetry._events import Event
-from opentelemetry.util.types import _ExtendedAttributes
+from opentelemetry.instrumentation.google_genai.uploader import (
+    upload_to_storage,
+)
+from opentelemetry.util.types import _ExtendedAttributes, AnyValue
 from opentelemetry.semconv._incubating.metrics import gen_ai_metrics
 from opentelemetry.semconv.schemas import Schemas
 
@@ -96,7 +99,7 @@ class OTelWrapper:
         # input_tokens: int,
         # output_tokens: int,
     ) -> None:
-        _logger.debug("Recording user prompt.")
+        _logger.debug("Recording completion details event.")
         event_name = "gen_ai.completion.details"
 
         body = {
@@ -107,6 +110,44 @@ class OTelWrapper:
             body["gen_ai.system.instructions"] = (
                 system_instructions.model_dump(mode="json")
             )
+
+        event = Event(event_name, body=body, attributes=attributes)
+        self._event_logger.emit(event)
+
+    def log_completion_details_refs(
+        self,
+        *,
+        attributes: _ExtendedAttributes,
+        system_instructions: SystemMessage | None,
+        input_messages: InputMessages,
+        output_messages: OutputMessages,
+        response_id: str,
+        # request_model: str,
+        # response_model: str,
+        # input_tokens: int,
+        # output_tokens: int,
+    ) -> None:
+        _logger.debug("Recording completion details event as ref.")
+        event_name = "gen_ai.completion.details"
+
+        input_messages_ref = upload_to_storage(
+            f"{response_id}_input.json",
+            input_messages.model_dump(mode="json"),
+        )
+        output_messages_ref = upload_to_storage(
+            f"{response_id}_output.json",
+            output_messages.model_dump(mode="json"),
+        )
+        body = {
+            "gen_ai.input.messages_ref": input_messages_ref,
+            "gen_ai.output.messages_ref": output_messages_ref,
+        }
+        if system_instructions:
+            system_instructions_ref = upload_to_storage(
+                f"{response_id}_system_instructions.json",
+                system_instructions.model_dump(mode="json"),
+            )
+            body["gen_ai.system.instructions_ref"] = system_instructions_ref
 
         event = Event(event_name, body=body, attributes=attributes)
         self._event_logger.emit(event)

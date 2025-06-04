@@ -83,7 +83,7 @@ MessagePart = Annotated[
 
 
 class ChatMessage(BaseModel):
-    role: str
+    role: str | None
     parts: List[MessagePart]
 
 

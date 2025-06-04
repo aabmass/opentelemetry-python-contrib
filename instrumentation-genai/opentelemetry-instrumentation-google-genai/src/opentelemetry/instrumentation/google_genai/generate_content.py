@@ -17,20 +17,18 @@ import functools
 import json
 import logging
 import os
-from re import S
 import time
 from typing import Any, AsyncIterator, Awaitable, Iterator, Optional, Union
+from uuid import uuid4
 
-from google.genai.models import AsyncModels, Models, t as transformers
+from google.genai.models import AsyncModels, Models
+from google.genai.models import t as transformers
 from google.genai.types import (
     BlockedReason,
     Candidate,
     Content,
     ContentListUnion,
-    GenerateContentConfig,
-    ContentUnion,
     ContentListUnionDict,
-    Content,
     ContentUnion,
     ContentUnionDict,
     GenerateContentConfig,
@@ -49,14 +47,13 @@ from .allowlist_util import AllowList
 from .custom_semconv import GCP_GENAI_OPERATION_CONFIG
 from .dict_util import flatten_dict
 from .flags import is_content_recording_enabled
-from .otel_wrapper import OTelWrapper
-from .tool_call_wrapper import wrapped as wrapped_tool
 from .message import (
-    ContentUnion,
     to_input_messages,
     to_output_message,
     to_system_instruction,
 )
+from .otel_wrapper import OTelWrapper
+from .tool_call_wrapper import wrapped as wrapped_tool
 
 _logger = logging.getLogger(__name__)
 
@@ -330,7 +327,7 @@ class _GenerateContentInstrumentationHelper:
         self._update_finish_reasons(response)
         self._maybe_update_token_counts(response)
         self._maybe_update_error_type(response)
-        self._maybe_log_response(response)
+        # self._maybe_log_response(response)
         self._response_index += 1
 
     def process_error(self, e: Exception):
@@ -439,6 +436,15 @@ class _GenerateContentInstrumentationHelper:
             input_messages=input_messages,
             output_messages=output_message,
             attributes=attributes,
+        )
+
+        # Forward looking remote storage refs
+        self._otel_wrapper.log_completion_details_refs(
+            system_instructions=system_instruction,
+            input_messages=input_messages,
+            output_messages=output_message,
+            attributes=attributes,
+            response_id=response.response_id or str(uuid4()),
         )
 
     def _maybe_log_system_instruction(
