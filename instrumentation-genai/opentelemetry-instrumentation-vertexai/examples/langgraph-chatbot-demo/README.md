@@ -40,7 +40,10 @@ PROJECT=<...>
 TAG=0.x.y
 
 # Update GIT_REF to a commit SHA to force rebuilding if the branch is updated
-docker build --build-arg GIT_REF=vertex-langgraph . -t us-central1-docker.pkg.dev/{$PROJECT}/oci/langgraph-chatbot-demo:${TAG}
+docker build \
+--build-arg GIT_REF=vertex-langgraph \
+-t us-central1-docker.pkg.dev/${PROJECT}/oci/langgraph-chatbot-demo:${TAG} \
+https://raw.githubusercontent.com/aabmass/opentelemetry-python-contrib/refs/heads/vertex-langgraph/instrumentation-genai/opentelemetry-instrumentation-vertexai/examples/langgraph-chatbot-demo/Dockerfile
 ```
 
 ### App Engine
