@@ -18,35 +18,42 @@ Has a global uploader object using `fsspec` under the hood to work with all sort
 cloud storage.
 """
 
-from abc import ABC, abstractmethod
 import io
 import json
 import logging
+import os
+import posixpath
+from abc import ABC, abstractmethod
 from pathlib import Path
 
-from fsspec import AbstractFileSystem
-from fsspec.asyn import AsyncFileSystem, AbstractBufferedFile
+import fsspec
+from google.cloud import storage
 
 from opentelemetry.trace import get_tracer
 from opentelemetry.util._once import Once
 from opentelemetry.util.types import AnyValue
-from google.cloud import storage
-from google.cloud.storage import transfer_manager
 
+OTEL_PYTHON_GENAI_UPLOADER_PATH = "OTEL_PYTHON_GENAI_UPLOADER_PATH"
+"""
+.. envvar:: OTEL_PYTHON_GENAI_UPLOADER_PATH
+
+An `fsspec.open` compatible URI/path for uploading prompts and responses. Can be a local path
+like ``file:./prompts`` or a cloud storage URI such as ``gcs://my_bucket``. See
+`fsspec <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_.
+"""
 
 _logger = logging.getLogger(__name__)
 _tracer = get_tracer(__name__)
 
 
-# TODO: try to make async or do background buffering + async
-
-
 class Uploader(ABC):
     @abstractmethod
-    def upload(self, *, path: Path, value: AnyValue) -> str:
+    def upload(self, *, path: str, value: AnyValue) -> str:
         pass
 
 
+# Another impl using GCS client directly. I tested this and it was not any faster but could use
+# more benchmarking vs fsspec
 class GcsUploader(Uploader):
     def __init__(
         self, *, bucket_path: str, client: storage.Client | None = None
@@ -54,7 +61,7 @@ class GcsUploader(Uploader):
         self._client = client or storage.Client()
         self._bucket_path = bucket_path
 
-    def upload(self, *, path: Path, value: AnyValue) -> str:
+    def upload(self, *, path: str, value: AnyValue) -> str:
         blob = self._client.bucket(self._bucket_path).blob(str(path))
         with blob.open("w") as file:
             json.dump(value, file)
@@ -63,20 +70,17 @@ class GcsUploader(Uploader):
 
 
 class FsSpecUploader(Uploader):
-    def __init__(self, *, fs: AbstractFileSystem, base_path: Path) -> None:
-        self._fs = fs
+    def __init__(self, *, base_path: str) -> None:
         self._base_path = base_path
 
     @_tracer.start_as_current_span("fsspec_upload")
-    def upload(self, *, path: Path, value: AnyValue) -> str:
-        with self._fs.open(self._base_path / path, "wb") as file:
-            # Encode to utf8 bytes while writing to the file
-            text_wrapper = io.TextIOWrapper(
-                file, encoding="utf-8", write_through=True
-            )
-            json.dump(value, text_wrapper)
-        _logger.debug("Uploaded to %s", file)
-        return file.full_name
+    def upload(self, *, path: str, value: AnyValue) -> str:
+        open_file = fsspec.open(posixpath.join(self._base_path, path), "w")
+        with open_file as file:
+            json.dump(value, file)
+
+        _logger.debug("Uploaded to %s", open_file)
+        return open_file.full_name
 
 
 _uploader: Uploader | None = None
@@ -84,6 +88,19 @@ _uploader_once: Once = Once()
 
 
 def _get_uploader() -> Uploader | None:
+    if _uploader:
+        return _uploader
+
+    if uploader_path := os.environ.get(OTEL_PYTHON_GENAI_UPLOADER_PATH):
+        try:
+            set_uploader(FsSpecUploader(base_path=uploader_path))
+        except ValueError:
+            _logger.exception(
+                "Failed to create uploader from %s=%s",
+                OTEL_PYTHON_GENAI_UPLOADER_PATH,
+                uploader_path,
+            )
+
     return _uploader
 
 
@@ -91,6 +108,7 @@ def set_uploader(uploader: Uploader) -> None:
     def do_set():
         global _uploader
         _uploader = uploader
+        _logger.debug("Set global uploader %s", uploader)
 
     _uploader_once.do_once(do_set)
 
