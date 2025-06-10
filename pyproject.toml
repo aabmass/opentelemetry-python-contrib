@@ -150,6 +150,9 @@ members = [
   "propagator/*",
   "util/*",
 ]
+exclude = [
+  "instrumentation-genai/opentelemetry-instrumentation-vertexai",
+]
 
 [tool.ruff]
 # https://docs.astral.sh/ruff/configuration/
