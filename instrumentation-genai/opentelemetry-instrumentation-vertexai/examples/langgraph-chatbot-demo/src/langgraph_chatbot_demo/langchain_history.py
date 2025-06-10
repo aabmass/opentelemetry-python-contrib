@@ -1,6 +1,7 @@
 """Adapted from https://github.com/langchain-ai/streamlit-agent/blob/main/streamlit_agent/basic_memory.py"""
 
 import logging
+import os
 import sqlite3
 import tempfile
 from random import getrandbits
@@ -25,6 +26,8 @@ from sqlalchemy import Engine, create_engine
 from opentelemetry import trace
 from opentelemetry.trace.span import format_trace_id
 
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.0-flash")
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -43,8 +46,7 @@ st.set_page_config(page_title=title, page_icon="📖", layout="wide")
 st.title(title)
 _streamlit_helpers.styles()
 
-
-model = PatchedChatVertexAI(model="gemini-2.0-flash")
+model = PatchedChatVertexAI(model=MODEL_NAME)
 
 if not st.query_params.get("thread_id"):
     result = model.invoke(
