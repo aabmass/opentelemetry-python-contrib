@@ -77,3 +77,8 @@ stubPath = "types"
 reportMissingImports = "error"
 reportMissingTypeStubs = false
 pythonVersion = "3.9"
+
+[dependency-groups]
+dev = [
+    "pillow>=11.2.1",
+]
