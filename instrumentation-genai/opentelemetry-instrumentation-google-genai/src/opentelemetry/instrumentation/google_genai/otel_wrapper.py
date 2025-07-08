@@ -17,10 +17,12 @@ import logging
 import google.genai
 
 from opentelemetry._events import Event
+from opentelemetry.util.types import _ExtendedAttributes
 from opentelemetry.semconv._incubating.metrics import gen_ai_metrics
 from opentelemetry.semconv.schemas import Schemas
 
 from .version import __version__ as _LIBRARY_VERSION
+from .message_models import InputMessages, OutputMessages, SystemMessage
 
 _logger = logging.getLogger(__name__)
 
@@ -81,6 +83,33 @@ class OTelWrapper:
         _logger.debug("Recording user prompt.")
         event_name = "gen_ai.user.message"
         self._log_event(event_name, attributes, body)
+
+    def log_completion_details(
+        self,
+        *,
+        attributes: _ExtendedAttributes,
+        system_instructions: SystemMessage | None,
+        input_messages: InputMessages,
+        output_messages: OutputMessages,
+        # request_model: str,
+        # response_model: str,
+        # input_tokens: int,
+        # output_tokens: int,
+    ) -> None:
+        _logger.debug("Recording user prompt.")
+        event_name = "gen_ai.completion.details"
+
+        body = {
+            "gen_ai.input.messages": input_messages.model_dump(mode="json"),
+            "gen_ai.output.messages": output_messages.model_dump(mode="json"),
+        }
+        if system_instructions:
+            body["gen_ai.system.instructions"] = (
+                system_instructions.model_dump(mode="json")
+            )
+
+        event = Event(event_name, body=body, attributes=attributes)
+        self._event_logger.emit(event)
 
     def log_response_content(self, attributes, body):
         _logger.debug("Recording response.")
