@@ -127,7 +127,7 @@ def setup_opentelemetry() -> None:
     #     set_uploader(GcsUploader(bucket_path=OTEL_PYTHON_GCS_UPLOAD_BUCKET))
 
     # Load instrumentors
-    SQLite3Instrumentor().instrument()
+    # SQLite3Instrumentor().instrument()
     VertexAIInstrumentor().instrument()
     GoogleGenAiSdkInstrumentor().instrument()
     AioHttpClientInstrumentor().instrument()
