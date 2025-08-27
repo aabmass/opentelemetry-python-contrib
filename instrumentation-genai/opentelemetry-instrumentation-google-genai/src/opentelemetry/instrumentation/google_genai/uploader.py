@@ -18,6 +18,8 @@ Has a global uploader object using `fsspec` under the hood to work with all sort
 cloud storage.
 """
 
+import contextlib
+import io
 import json
 import logging
 import os
@@ -32,6 +34,7 @@ from opentelemetry.instrumentation.utils import suppress_instrumentation
 from opentelemetry.trace import get_tracer
 from opentelemetry.util._once import Once
 from opentelemetry.util.types import AnyValue
+from opentelemetry.instrumentation.utils import suppress_instrumentation
 
 OTEL_PYTHON_GENAI_UPLOADER_PATH = "OTEL_PYTHON_GENAI_UPLOADER_PATH"
 """

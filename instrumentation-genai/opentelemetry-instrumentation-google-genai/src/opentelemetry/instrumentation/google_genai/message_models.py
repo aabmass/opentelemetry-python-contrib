@@ -16,7 +16,7 @@
 # https://gist.github.com/lmolkova/09ba0de7f68280f1eac27a6acfd9b1a6?permalink_comment_id=5578799#gistcomment-5578799
 
 from enum import Enum
-from typing import Annotated, Any, List, Literal, Union
+from typing import Annotated, Any, List, Literal, Optional, Union
 
 from pydantic import Base64Encoder, BaseModel, EncodedBytes, Field, RootModel
 
@@ -50,7 +50,7 @@ class TextPart(BaseModel):
         extra = "allow"
 
 
-class ToolCallPart(BaseModel):
+class ToolCallRequestPart(BaseModel):
     """
     Represents a tool call requested by the model.
     """
@@ -59,11 +59,11 @@ class ToolCallPart(BaseModel):
         description="The type of the content captured in this part.",
         default="tool_call",
     )
-    id: str = Field(description="Unique identifier for the tool call.")
-    name: str = Field(description="Name of the tool.")
-    arguments: Any = Field(
-        description="Arguments for the tool call.", default=None
+    id: Optional[str] = Field(
+        default=None, description="Unique identifier for the tool call."
     )
+    name: str = Field(description="Name of the tool.")
+    arguments: Any = Field(None, description="Arguments for the tool call.")
 
     class Config:
         extra = "allow"
@@ -71,32 +71,46 @@ class ToolCallPart(BaseModel):
 
 class ToolCallResponsePart(BaseModel):
     """
-    Represents a tool call result sent to the model.
+    Represents a tool call result sent to the model or a built-in tool call outcome and details.
     """
 
     type: Literal["tool_call_response"] = Field(
         description="The type of the content captured in this part.",
         default="tool_call_response",
     )
-    id: str = Field(description="Unique tool call identifier.")
-    result: Any = Field(description="Tool call result.")
+    id: Optional[str] = Field(
+        default=None, description="Unique tool call identifier."
+    )
+    response: Any = Field(description="Tool call response.")
 
     class Config:
         extra = "allow"
 
 
-MessagePart = Annotated[
-    Union[
-        TextPart,
-        ToolCallPart,
-        ToolCallResponsePart,
-        # Add other message part types here as needed,
-        # e.g. image URL, image blob, audio URL, structured output, hosted tool call, etc.
-        # I added
-        "FileDataPart",
-        "BlobPart",
-    ],
-    Field(discriminator="type"),
+class GenericPart(BaseModel):
+    """
+    Represents an arbitrary message part with any type and properties.
+    This allows for extensibility with custom message part types.
+    """
+
+    type: str = Field(
+        description="The type of the content captured in this part."
+    )
+
+    class Config:
+        extra = "allow"
+
+
+MessagePart = Union[
+    TextPart,
+    ToolCallRequestPart,
+    ToolCallResponsePart,
+    GenericPart,
+    # Add other message part types here as needed,
+    # e.g. image URL, image blob, audio URL, structured output, hosted tool call, etc.
+    # I added
+    "FileDataPart",
+    "BlobPart",
 ]
 
 
@@ -104,6 +118,7 @@ class Role(str, Enum):
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
+    TOOL = "tool"
 
 
 class ChatMessage(BaseModel):

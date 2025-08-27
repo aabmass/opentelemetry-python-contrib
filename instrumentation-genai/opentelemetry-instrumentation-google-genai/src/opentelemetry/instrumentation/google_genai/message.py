@@ -29,7 +29,7 @@ from .message_models import (
     OutputMessages,
     Role,
     TextPart,
-    ToolCallPart,
+    ToolCallRequestPart,
     ToolCallResponsePart,
 )
 
@@ -101,14 +101,14 @@ def _to_part(part: genai_types.Part) -> MessagePart | None:
         )
 
     if call := part.function_call:
-        return ToolCallPart(
+        return ToolCallRequestPart(
             id=call.id or "", name=call.name or "", arguments=call.args
         )
 
     if response := part.function_response:
         return ToolCallResponsePart(
             id=response.id or "",
-            result=response.response,
+            response=response.response,
         )
 
     _logger.info("Unknown part dropped from telemetry %s", part)
