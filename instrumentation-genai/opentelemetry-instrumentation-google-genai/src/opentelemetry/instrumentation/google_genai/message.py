@@ -80,7 +80,9 @@ def to_system_instruction(
 def _to_chat_message(
     content: genai_types.Content,
 ) -> ChatMessage:
-    parts = (_to_part(part) for part in (content.parts or []))
+    parts = (
+        _to_part(part, idx) for idx, part in enumerate(content.parts or [])
+    )
     return ChatMessage(
         role=_to_role(content.role),
         # filter Nones
@@ -88,7 +90,12 @@ def _to_chat_message(
     )
 
 
-def _to_part(part: genai_types.Part) -> MessagePart | None:
+def _to_part(part: genai_types.Part, idx: int) -> MessagePart | None:
+    def tool_call_id(name: str | None) -> str:
+        if name:
+            return f"{name}_{idx}"
+        return f"{idx}"
+
     if (text := part.text) is not None:
         return TextPart(content=text)
 
@@ -102,12 +109,14 @@ def _to_part(part: genai_types.Part) -> MessagePart | None:
 
     if call := part.function_call:
         return ToolCallRequestPart(
-            id=call.id or "", name=call.name or "", arguments=call.args
+            id=call.id or tool_call_id(call.name),
+            name=call.name or "",
+            arguments=call.args,
         )
 
     if response := part.function_response:
         return ToolCallResponsePart(
-            id=response.id or "",
+            id=response.id or tool_call_id(response.name),
             response=response.response,
         )
 
