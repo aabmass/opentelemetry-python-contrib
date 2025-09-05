@@ -2,57 +2,57 @@
 
 <!-- TODO: link to devsite doc once it is published -->
 
-This sample is an ADK agent instrumented with OpenTelemetry to send traces and logs with GenAI
-prompts and responses, and metrics to Google Cloud Observability.
+This demo shows does remote uploading and with `.ref` attributes in the telemetry, following OTel semconv 1.37 for GenAI: https://github.com/open-telemetry/semantic-conventions/blob/v1.37.0/docs/gen-ai/gen-ai-events.md
 
-The Agent is a SQL expert that has full access to an ephemeral SQLite database. The database is
-initially empty.
+## Configure upload
+This demo uses the [fsspec](https://filesystem-spec.readthedocs.io/) library to do the upload
+in a vendor agnostic way, which is configured in an environment variable
+`OTEL_PYTHON_GENAI_UPLOADER_PATH`. For example, to upload to GCS bucket `my-bucket` with
+subdirectory `v1/`:
 
-## APIs and Permissions
-
-Enable the relevant Cloud Observability APIs if they aren't already enabled.
-```sh
-gcloud services enable telemetry.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudtrace.googleapis.com
+```console
+export OTEL_PYTHON_GENAI_UPLOADER_PATH="gs://my-bucket/v1"
 ```
 
-This sample writes to Cloud Logging, Cloud Monitoring, and Cloud Trace. Grant yourself the
-following roles to run the example:
-- `roles/logging.logWriter` – see https://cloud.google.com/logging/docs/access-control#permissions_and_roles
-- `roles/monitoring.metricWriter` – see https://cloud.google.com/monitoring/access-control#predefined_roles
-- `roles/telemetry.writer` – see https://cloud.google.com/trace/docs/iam#telemetry-roles
+This will work with any installed fsspec implementations and also allows using any fsspec
+configuration like URL Chaining:
+- [Built in implementations](https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations)
+- [Known third party impls](https://filesystem-spec.readthedocs.io/en/latest/api.html#external-implementations)
+- [URL Chaining](https://filesystem-spec.readthedocs.io/en/latest/features.html#url-chaining)
 
-## Running the example
+## Run the demo
 
-The sample can easily be run in Cloud Shell. You can also use
-[Application Default Credentials][ADC] locally. Clone and set environment variables:
-```sh
-git clone https://github.com/GoogleCloudPlatform/opentelemetry-operations-python.git
-cd opentelemetry-operations-python/samples/adk-sql-agent
+To run the app, set some environment variables (alternatively can be put in `main.env`):
 
-# Capture GenAI prompts and responses
-export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
-# Capture application logs automatically
-export OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+```console
+# Port if not default
+export PORT=8000
+# Project for ADC
+export GOOGLE_CLOUD_PROJECT=my-project
+
+# Configure the upload path
+export OTEL_PYTHON_GENAI_UPLOADER_PATH="gs://${GOOGLE_CLOUD_PROJECT}/v1"
+
+uv run --env-file main.env main.py
 ```
 
-Create a virtual environment and run the sample:
-```sh
-python -m venv venv/
-source venv/bin/activate
-pip install -r requirements.txt
-python main.py
+## Dockerfile
+
+Build
+
+```console
+# from this directory, run with repo root build context
+docker build -f ./Dockerfile -t adk-sql-agent-write-aside ..
 ```
 
-Alternatively if you have [`uv`](https://docs.astral.sh/uv/) installed:
-
-```sh
-uv run main.py
+Run:
+```console
+docker run --rm \
+    -p 8000:8000 \
+    -e PORT=8000 \
+    -e GOOGLE_APPLICATION_CREDENTIALS \
+    -e GOOGLE_CLOUD_PROJECT \
+    -e OTEL_PYTHON_GENAI_UPLOADER_PATH="gs://otel-starter-project-genai-refs/v1" \
+    -v "$GOOGLE_APPLICATION_CREDENTIALS:$GOOGLE_APPLICATION_CREDENTIALS" \
+    adk-sql-agent-write-aside:latest
 ```
-
-## Viewing the results
-
-To view the generated traces with [Generative AI
-events](https://cloud.google.com/trace/docs/finding-traces#view_generative_ai_events) in the
-GCP console, use the [Trace Explorer](https://cloud.google.com/trace/docs/finding-traces). Filter for spans named `invoke agent`.
-
-[ADC]: https://cloud.google.com/docs/authentication/application-default-credentials
