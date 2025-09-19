@@ -37,9 +37,10 @@ classifiers = [
   "Programming Language :: Python :: 3.12"
 ]
 dependencies = [
+  "fsspec>=2025.5.1",
   "opentelemetry-api >=1.31.1, <2",
   "opentelemetry-instrumentation >=0.52b1, <2",
-  "opentelemetry-semantic-conventions >=0.52b1, <2"
+  "opentelemetry-semantic-conventions >=0.52b1, <2",
 ]
 
 [project.optional-dependencies]
@@ -77,3 +78,8 @@ stubPath = "types"
 reportMissingImports = "error"
 reportMissingTypeStubs = false
 pythonVersion = "3.9"
+
+[dependency-groups]
+dev = [
+    "pillow>=11.2.1",
+]

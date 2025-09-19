@@ -11,15 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
 
 import logging
 
 import google.genai
 
 from opentelemetry._events import Event
+from opentelemetry.instrumentation.google_genai.uploader import (
+    upload_to_storage,
+)
 from opentelemetry.semconv._incubating.metrics import gen_ai_metrics
 from opentelemetry.semconv.schemas import Schemas
+from opentelemetry.util.types import _ExtendedAttributes
 
+from .message_models import ChatMessage, InputMessages, OutputMessages
 from .version import __version__ as _LIBRARY_VERSION
 
 _logger = logging.getLogger(__name__)
@@ -81,6 +87,71 @@ class OTelWrapper:
         _logger.debug("Recording user prompt.")
         event_name = "gen_ai.user.message"
         self._log_event(event_name, attributes, body)
+
+    def log_completion_details(
+        self,
+        *,
+        attributes: _ExtendedAttributes,
+        system_instructions: ChatMessage | None,
+        input_messages: InputMessages,
+        output_messages: OutputMessages,
+        # request_model: str,
+        # response_model: str,
+        # input_tokens: int,
+        # output_tokens: int,
+    ) -> None:
+        _logger.debug("Recording completion details event.")
+        event_name = "gen_ai.completion.details"
+
+        body = {
+            "gen_ai.input.messages": input_messages.model_dump(mode="json"),
+            "gen_ai.output.messages": output_messages.model_dump(mode="json"),
+        }
+        if system_instructions:
+            body["gen_ai.system.instructions"] = (
+                system_instructions.model_dump(mode="json")
+            )
+
+        event = Event(event_name, body=body, attributes=attributes)
+        self._event_logger.emit(event)
+
+    def log_completion_details_refs(
+        self,
+        *,
+        attributes: _ExtendedAttributes,
+        system_instructions: ChatMessage | None,
+        input_messages: InputMessages,
+        output_messages: OutputMessages,
+        response_id: str,
+        # request_model: str,
+        # response_model: str,
+        # input_tokens: int,
+        # output_tokens: int,
+    ) -> None:
+        _logger.debug("Recording completion details event as ref.")
+        event_name = "gen_ai.completion.details"
+
+        input_messages_ref = upload_to_storage(
+            f"{response_id}_input.json",
+            input_messages.model_dump(mode="json"),
+        )
+        output_messages_ref = upload_to_storage(
+            f"{response_id}_output.json",
+            output_messages.model_dump(mode="json"),
+        )
+        body = {
+            "gen_ai.input.messages_ref": input_messages_ref,
+            "gen_ai.output.messages_ref": output_messages_ref,
+        }
+        if system_instructions:
+            system_instructions_ref = upload_to_storage(
+                f"{response_id}_system_instructions.json",
+                system_instructions.model_dump(mode="json"),
+            )
+            body["gen_ai.system.instructions_ref"] = system_instructions_ref
+
+        event = Event(event_name, body=body, attributes=attributes)
+        self._event_logger.emit(event)
 
     def log_response_content(self, attributes, body):
         _logger.debug("Recording response.")

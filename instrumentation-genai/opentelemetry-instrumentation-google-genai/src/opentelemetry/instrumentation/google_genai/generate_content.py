@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import copy
 import functools
 import json
@@ -19,8 +21,10 @@ import logging
 import os
 import time
 from typing import Any, AsyncIterator, Awaitable, Iterator, Optional, Union
+from uuid import uuid4
 
 from google.genai.models import AsyncModels, Models
+from google.genai.models import t as transformers
 from google.genai.types import (
     BlockedReason,
     Candidate,
@@ -45,6 +49,11 @@ from .allowlist_util import AllowList
 from .custom_semconv import GCP_GENAI_OPERATION_CONFIG
 from .dict_util import flatten_dict
 from .flags import is_content_recording_enabled
+from .message import (
+    to_input_messages,
+    to_output_message,
+    to_system_instruction,
+)
 from .otel_wrapper import OTelWrapper
 from .tool_call_wrapper import wrapped as wrapped_tool
 
@@ -141,6 +150,17 @@ def _to_dict(value: object):
     if hasattr(value, "model_dump"):
         return value.model_dump()
     return json.loads(json.dumps(value))
+
+
+def _config_to_system_instruction(
+    config: GenerateContentConfigOrDict | None,
+) -> ContentUnion | None:
+    if not config:
+        return None
+
+    if isinstance(config, dict):
+        return GenerateContentConfig.model_validate(config).system_instruction
+    return config.system_instruction
 
 
 def _add_request_options_to_span(
@@ -242,6 +262,7 @@ class _GenerateContentInstrumentationHelper:
     ):
         self._start_time = time.time_ns()
         self._otel_wrapper = otel_wrapper
+        self._models_object = models_object
         self._genai_system = _determine_genai_system(models_object)
         self._genai_request_model = model
         self._finish_reasons_set = set()
@@ -290,18 +311,25 @@ class _GenerateContentInstrumentationHelper:
         _add_request_options_to_span(
             span, config, self._generate_content_config_key_allowlist
         )
-        self._maybe_log_system_instruction(config=config)
-        self._maybe_log_user_prompt(contents)
 
-    def process_response(self, response: GenerateContentResponse):
+    def process_completion(
+        self,
+        *,
+        config: Optional[GenerateContentConfigOrDict],
+        request: Union[ContentListUnion, ContentListUnionDict],
+        response: GenerateContentResponse,
+    ):
         # TODO: Determine if there are other response properties that
         # need to be reflected back into the span attributes.
         #
         # See also: TODOS.md.
+        self._maybe_log_completion_details(
+            config=config, request=request, response=response
+        )
         self._update_finish_reasons(response)
         self._maybe_update_token_counts(response)
         self._maybe_update_error_type(response)
-        self._maybe_log_response(response)
+        # self._maybe_log_response(response)
         self._response_index += 1
 
     def process_error(self, e: Exception):
@@ -372,6 +400,45 @@ class _GenerateContentInstrumentationHelper:
         # See also: "TODOS.md"
         block_reason = response.prompt_feedback.block_reason.name.upper()
         self._error_type = f"BLOCKED_{block_reason}"
+
+    def _maybe_log_completion_details(
+        self,
+        *,
+        config: Optional[GenerateContentConfigOrDict],
+        request: Union[ContentListUnion, ContentListUnionDict],
+        response: GenerateContentResponse,
+    ) -> None:
+        attributes = {
+            gen_ai_attributes.GEN_AI_SYSTEM: self._genai_system,
+        }
+
+        system_instruction = None
+        if system_content := _config_to_system_instruction(config):
+            system_instruction = to_system_instruction(
+                content=transformers.t_contents(system_content)[0]
+            )
+        input_messages = to_input_messages(
+            contents=transformers.t_contents(request)
+        )
+        output_message = to_output_message(
+            candidates=response.candidates or []
+        )
+
+        self._otel_wrapper.log_completion_details(
+            system_instructions=system_instruction,
+            input_messages=input_messages,
+            output_messages=output_message,
+            attributes=attributes,
+        )
+
+        # Forward looking remote storage refs
+        self._otel_wrapper.log_completion_details_refs(
+            system_instructions=system_instruction,
+            input_messages=input_messages,
+            output_messages=output_message,
+            attributes=attributes,
+            response_id=response.response_id or str(uuid4()),
+        )
 
     def _maybe_log_system_instruction(
         self, config: Optional[GenerateContentConfigOrDict] = None
@@ -596,7 +663,9 @@ def _create_instrumented_generate_content(
                     config=helper.wrapped_config(config),
                     **kwargs,
                 )
-                helper.process_response(response)
+                helper.process_completion(
+                    config=config, request=contents, response=response
+                )
                 return response
             except Exception as error:
                 helper.process_error(error)
@@ -641,7 +710,9 @@ def _create_instrumented_generate_content_stream(
                     config=helper.wrapped_config(config),
                     **kwargs,
                 ):
-                    helper.process_response(response)
+                    helper.process_completion(
+                        config=config, request=contents, response=response
+                    )
                     yield response
             except Exception as error:
                 helper.process_error(error)
@@ -686,7 +757,10 @@ def _create_instrumented_async_generate_content(
                     config=helper.wrapped_config(config),
                     **kwargs,
                 )
-                helper.process_response(response)
+                helper.process_completion(
+                    config=config, request=contents, response=response
+                )
+
                 return response
             except Exception as error:
                 helper.process_error(error)
@@ -744,7 +818,9 @@ def _create_instrumented_async_generate_content_stream(  # type: ignore
             with trace.use_span(span, end_on_exit=True):
                 try:
                     async for response in response_async_generator:
-                        helper.process_response(response)
+                        helper.process_completion(
+                            config=config, request=contents, response=response
+                        )
                         yield response
                 except Exception as error:
                     helper.process_error(error)
