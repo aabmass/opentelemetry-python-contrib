@@ -139,7 +139,7 @@ class TestUploadCompletionHook(TestCase):
             return MagicMock()
 
         try:
-            self.mock_fs.open.side_effect = blocked_upload
+            self.mock_fs.put_file.side_effect = blocked_upload
             yield
         finally:
             unblock_upload.set()
@@ -157,7 +157,7 @@ class TestUploadCompletionHook(TestCase):
         self.hook.shutdown()
 
         self.assertEqual(
-            self.mock_fs.open.call_count,
+            self.mock_fs.put_file.call_count,
             3,
             "should have uploaded 3 files",
         )
@@ -173,7 +173,7 @@ class TestUploadCompletionHook(TestCase):
                 )
 
             self.assertLessEqual(
-                self.mock_fs.open.call_count,
+                self.mock_fs.put_file.call_count,
                 MAXSIZE,
                 f"uploader should only be called {MAXSIZE=} times",
             )
@@ -201,7 +201,7 @@ class TestUploadCompletionHook(TestCase):
             self.hook.shutdown(timeout_sec=0.01)
 
     def test_failed_upload_logs(self):
-        self.mock_fs.open.side_effect = RuntimeError("failed to upload")
+        self.mock_fs.put_file.side_effect = RuntimeError("failed to upload")
 
         with self.assertLogs(level=logging.ERROR) as logs:
             self.hook.on_completion(
@@ -234,8 +234,8 @@ class TestUploadCompletionHook(TestCase):
             )
             hook.shutdown()
 
-            self.mock_fs.open.assert_called_with(
-                ANY, "w", content_type=expect_content_type
+            self.mock_fs.put_file.assert_called_with(
+                ANY, ANY, content_type=expect_content_type
             )
 
     def test_parse_upload_format_envvar(self):

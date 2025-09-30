@@ -18,6 +18,9 @@ from __future__ import annotations
 import json
 import logging
 import posixpath
+import shutil
+from tempfile import SpooledTemporaryFile
+import tempfile
 import threading
 from base64 import b64encode
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -190,15 +193,18 @@ class UploadCompletionHook(CompletionHook):
             else "application/jsonl"
         )
 
-        with self._fs.open(path, "w", content_type=content_type) as file:
+        with tempfile.NamedTemporaryFile(mode="w+") as temp_file:
             for message in message_lines:
                 json.dump(
                     message,
-                    file,
+                    temp_file,
                     separators=(",", ":"),
                     cls=Base64JsonEncoder,
                 )
-                file.write("\n")
+                temp_file.write("\n")
+
+            temp_file.flush()
+            self._fs.put_file(temp_file.name, path, content_type=content_type)
 
     def on_completion(
         self,
