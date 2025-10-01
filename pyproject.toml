@@ -65,6 +65,7 @@ dependencies = [
   "opentelemetry-propagator-aws-xray",
   "opentelemetry-util-http",
   "opentelemetry-util-genai",
+  "opentelemetry-instrumentation-google-genai[instruments]",
   "opentelemetry-instrumentation-vertexai[instruments]",
   "opentelemetry-instrumentation-openai-v2[instruments]",
 ]
@@ -79,6 +80,7 @@ required-version = ">=0.6.0"
 [tool.uv.sources]
 opentelemetry-api = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-api" }
 opentelemetry-sdk = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-sdk" }
+opentelemetry-exporter-otlp-proto-grpc = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "exporter/opentelemetry-exporter-otlp-proto-grpc" }
 opentelemetry-semantic-conventions = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "opentelemetry-semantic-conventions" }
 opentelemetry-test-utils = { git = "https://github.com/open-telemetry/opentelemetry-python", branch = "main", subdirectory = "tests/opentelemetry-test-utils" }
 opentelemetry-exporter-prometheus-remote-write = { workspace = true }
@@ -136,6 +138,7 @@ opentelemetry-propagator-ot-trace = { workspace = true }
 opentelemetry-propagator-aws-xray = { workspace = true }
 opentelemetry-util-http = { workspace = true }
 opentelemetry-util-genai = { workspace = true }
+opentelemetry-instrumentation-google-genai = { workspace = true }
 opentelemetry-instrumentation-vertexai = { workspace = true }
 opentelemetry-instrumentation-openai-v2 = { workspace = true }
 
@@ -143,6 +146,7 @@ opentelemetry-instrumentation-openai-v2 = { workspace = true }
 [tool.uv.workspace]
 members = [
   "instrumentation/*",
+  "adk-sql-agent",
   "instrumentation-genai/*",
   "exporter/*",
   "opentelemetry-instrumentation",

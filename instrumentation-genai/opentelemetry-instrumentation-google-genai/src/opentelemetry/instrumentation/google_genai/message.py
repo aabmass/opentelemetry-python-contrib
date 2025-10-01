@@ -18,43 +18,30 @@ import logging
 
 from google.genai import types as genai_types
 
-from .message_models import (
-    BlobPart,
-    ChatMessage,
-    FileDataPart,
-    FinishReason,
-    InputMessages,
-    MessagePart,
-    OutputMessage,
-    OutputMessages,
-    Role,
-    TextPart,
-    ToolCallPart,
-    ToolCallResponsePart,
-)
+from opentelemetry.util.genai import types
+
+from .message_models import FinishReason
 
 _logger = logging.getLogger(__name__)
 
 
 def to_input_messages(
-    *,
-    contents: list[genai_types.Content],
-) -> InputMessages:
-    return InputMessages([_to_chat_message(content) for content in contents])
+    *, contents: list[genai_types.Content]
+) -> list[types.InputMessage]:
+    return [_to_input_message(content) for content in contents]
 
 
 def to_output_message(
-    *,
-    candidates: list[genai_types.Candidate],
-) -> OutputMessages:
+    *, candidates: list[genai_types.Candidate]
+) -> list[types.OutputMessage]:
     def content_to_output_message(
         candidate: genai_types.Candidate,
-    ) -> OutputMessage | None:
+    ) -> types.OutputMessage | None:
         if not candidate.content:
             return None
 
-        message = _to_chat_message(candidate.content)
-        return OutputMessage(
+        message = _to_input_message(candidate.content)
+        return types.OutputMessage(
             finish_reason=_to_finish_reason(candidate.finish_reason),
             role=message.role,
             parts=message.parts,
@@ -63,64 +50,62 @@ def to_output_message(
     messages = (
         content_to_output_message(candidate) for candidate in candidates
     )
-    return OutputMessages(
-        [message for message in messages if message is not None]
-    )
+    return [message for message in messages if message is not None]
 
 
 # TODO: re-using ChatMessage for now but it is defined as any in
 # https://github.com/open-telemetry/semantic-conventions/pull/2179. I prefer ChatMessage.
 def to_system_instruction(
-    *,
-    content: genai_types.Content,
-) -> ChatMessage | None:
-    return _to_chat_message(content)
+    *, content: genai_types.Content
+) -> list[types.MessagePart]:
+    return _to_input_message(content).parts
 
 
-def _to_chat_message(
-    content: genai_types.Content,
-) -> ChatMessage:
-    parts = (_to_part(part) for part in (content.parts or []))
-    return ChatMessage(
-        role=_to_role(content.role),
+def _to_input_message(content: genai_types.Content) -> types.InputMessage:
+    parts = (
+        _to_part(part, idx) for idx, part in enumerate(content.parts or [])
+    )
+    return types.InputMessage(
+        role=content.role or "user",
         # filter Nones
         parts=[part for part in parts if part is not None],
     )
 
 
-def _to_part(part: genai_types.Part) -> MessagePart | None:
+def _to_part(part: genai_types.Part, idx: int) -> types.MessagePart | None:
+    def tool_call_id(name: str | None) -> str:
+        if name:
+            return f"{name}_{idx}"
+        return f"{idx}"
+
     if (text := part.text) is not None:
-        return TextPart(content=text)
+        return types.Text(content=text)
 
     if data := part.inline_data:
-        return BlobPart(mime_type=data.mime_type or "", data=data.data or b"")
+        return types.BlobPart(
+            mime_type=data.mime_type or "", data=data.data or b""
+        )
 
     if data := part.file_data:
-        return FileDataPart(
-            mime_type=data.mime_type or "", file_uri=data.file_uri or ""
+        return types.FileDataPart(
+            mime_type=data.mime_type or "", uri=data.file_uri or ""
         )
 
     if call := part.function_call:
-        return ToolCallPart(
-            id=call.id or "", name=call.name or "", arguments=call.args
+        return types.ToolCall(
+            id=call.id or tool_call_id(call.name),
+            name=call.name or "",
+            arguments=call.args,
         )
 
     if response := part.function_response:
-        return ToolCallResponsePart(
-            id=response.id or "",
-            result=response.response,
+        return types.ToolCallResponse(
+            id=response.id or tool_call_id(response.name),
+            response=response.response,
         )
 
     _logger.info("Unknown part dropped from telemetry %s", part)
     return None
-
-
-def _to_role(role: str | None) -> Role | str:
-    if role == "user":
-        return Role.USER
-    elif role == "model":
-        return Role.ASSISTANT
-    return ""
 
 
 def _to_finish_reason(

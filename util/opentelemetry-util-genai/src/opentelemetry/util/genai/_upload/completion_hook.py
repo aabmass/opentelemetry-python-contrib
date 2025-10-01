@@ -23,18 +23,20 @@ from tempfile import SpooledTemporaryFile
 import tempfile
 import threading
 from base64 import b64encode
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from contextlib import ExitStack
 from dataclasses import asdict, dataclass
 from functools import partial
 from os import environ
 from time import time
-from typing import Any, Callable, Final, Literal
+from typing import Any, Callable, Final, Literal, cast
 from uuid import uuid4
 
 import fsspec
 
+from opentelemetry import trace
 from opentelemetry._logs import LogRecord
+from opentelemetry.context.context import Context
 from opentelemetry.semconv._incubating.attributes import gen_ai_attributes
 from opentelemetry.trace import Span
 from opentelemetry.util.genai import types
@@ -42,6 +44,7 @@ from opentelemetry.util.genai.completion_hook import CompletionHook
 from opentelemetry.util.genai.environment_variables import (
     OTEL_INSTRUMENTATION_GENAI_UPLOAD_FORMAT,
 )
+from opentelemetry.util.genai.version import __version__
 
 GEN_AI_INPUT_MESSAGES_REF: Final = (
     gen_ai_attributes.GEN_AI_INPUT_MESSAGES + "_ref"
@@ -59,6 +62,7 @@ Format = Literal["json", "jsonl"]
 _FORMATS: tuple[Format, ...] = ("json", "jsonl")
 
 _logger = logging.getLogger(__name__)
+_tracer = trace.get_tracer(__name__, __version__)
 
 
 @dataclass
@@ -128,7 +132,20 @@ class UploadCompletionHook(CompletionHook):
         self._semaphore = threading.BoundedSemaphore(max_size)
 
     def _submit_all(self, upload_data: UploadData) -> None:
+        span = _tracer.start_span(
+            "fsspec_upload",
+            context=Context(),
+            attributes={"upload.paths": list(upload_data.keys())},
+        )
+        trace.get_current_span().add_link(
+            span.get_span_context(), {"type": "async fsspec upload"}
+        )
+
+        do_upload = trace.use_span(span)(self._do_upload)
+
+        @trace.use_span(span)
         def done(future: Future[None]) -> None:
+            _logger.info("Finished upload %s", threading.current_thread())
             try:
                 future.result()
             except Exception:  # pylint: disable=broad-except
@@ -136,6 +153,7 @@ class UploadCompletionHook(CompletionHook):
             finally:
                 self._semaphore.release()
 
+        futs: list[Future[None]] = []
         for path, json_encodeable in upload_data.items():
             # could not acquire, drop data
             if not self._semaphore.acquire(blocking=False):  # pylint: disable=consider-using-with
@@ -146,15 +164,19 @@ class UploadCompletionHook(CompletionHook):
                 continue
 
             try:
-                fut = self._executor.submit(
-                    self._do_upload, path, json_encodeable
-                )
+                fut = self._executor.submit(do_upload, path, json_encodeable)
+                futs.append(fut)
                 fut.add_done_callback(done)
             except RuntimeError:
                 _logger.info(
                     "attempting to upload file after UploadCompletionHook.shutdown() was already called"
                 )
                 self._semaphore.release()
+                span.end()
+
+        self._executor.submit(wait, futs).add_done_callback(
+            lambda fut: span.end()
+        )
 
     def _calculate_ref_path(self) -> CompletionRefs:
         # TODO: experimental with using the trace_id and span_id, or fetching
@@ -251,6 +273,7 @@ class UploadCompletionHook(CompletionHook):
         if span:
             span.set_attributes(references)
         if log_record:
+            _logger.info("stamping on log %s", log_record, extra=references)
             log_record.attributes = {
                 **(log_record.attributes or {}),
                 **references,

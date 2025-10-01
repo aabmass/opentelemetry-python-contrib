@@ -44,6 +44,7 @@ from opentelemetry.semconv._incubating.attributes import (
     gen_ai_attributes,
 )
 from opentelemetry.semconv.attributes import error_attributes
+from opentelemetry.util.genai import types
 
 from .allowlist_util import AllowList
 from .custom_semconv import GCP_GENAI_OPERATION_CONFIG
@@ -425,20 +426,20 @@ class _GenerateContentInstrumentationHelper:
         )
 
         self._otel_wrapper.log_completion_details(
-            system_instructions=system_instruction,
+            system_instructions=system_instruction or [],
             input_messages=input_messages,
             output_messages=output_message,
             attributes=attributes,
         )
 
-        # Forward looking remote storage refs
-        self._otel_wrapper.log_completion_details_refs(
-            system_instructions=system_instruction,
-            input_messages=input_messages,
-            output_messages=output_message,
-            attributes=attributes,
-            response_id=response.response_id or str(uuid4()),
-        )
+        # # Forward looking remote storage refs
+        # self._otel_wrapper.log_completion_details_refs(
+        #     system_instructions=system_instruction or [],
+        #     input_messages=input_messages,
+        #     output_messages=output_message,
+        #     attributes=attributes,
+        #     response_id=response.response_id or str(uuid4()),
+        # )
 
     def _maybe_log_system_instruction(
         self, config: Optional[GenerateContentConfigOrDict] = None
