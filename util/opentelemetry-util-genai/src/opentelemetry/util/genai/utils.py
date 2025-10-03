@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import json
 import logging
 import os
@@ -68,7 +69,17 @@ class _GenAiJsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if isinstance(o, bytes):
             return b64encode(o).decode()
-        return super().default(o)
+        elif isinstance(o, (datetime.datetime, datetime.date)):
+            return o.isoformat()
+
+        try:
+            return super().default(o)
+        except TypeError:
+            logger.warning(
+                'failed to encode object "%s" to JSON. Falling back to str()',
+                o,
+            )
+            return str(o)
 
 
 gen_ai_json_dump = partial(
