@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
+import io
 import json
 import os
 import unittest
 from typing import Any, Mapping, Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from pydantic import BaseModel
 
 from opentelemetry import trace
 from opentelemetry.instrumentation._semconv import (
@@ -47,7 +51,11 @@ from opentelemetry.util.genai.types import (
     OutputMessage,
     Text,
 )
-from opentelemetry.util.genai.utils import get_content_capturing_mode
+from opentelemetry.util.genai.utils import (
+    gen_ai_json_dump,
+    gen_ai_json_dumps,
+    get_content_capturing_mode,
+)
 
 
 def patch_env_vars(stability_mode, content_capturing):
@@ -145,12 +153,12 @@ class TestVersion(unittest.TestCase):
         stability_mode="gen_ai_latest_experimental",
         content_capturing="SPAN_ONLY",
     )
-    def test_get_content_capturing_mode_parses_valid_envvar(self):  # pylint: disable=no-self-use
+    def test_get_content_capturing_mode_parses_valid_envvar(
+        self,
+    ):  # pylint: disable=no-self-use
         assert get_content_capturing_mode() == ContentCapturingMode.SPAN_ONLY
 
-    @patch_env_vars(
-        stability_mode="gen_ai_latest_experimental", content_capturing=""
-    )
+    @patch_env_vars(stability_mode="gen_ai_latest_experimental", content_capturing="")
     def test_empty_content_capturing_envvar(self):  # pylint: disable=no-self-use
         assert get_content_capturing_mode() == ContentCapturingMode.NO_CONTENT
 
@@ -169,9 +177,7 @@ class TestVersion(unittest.TestCase):
         self,
     ):  # pylint: disable=no-self-use
         with self.assertLogs(level="WARNING") as cm:
-            assert (
-                get_content_capturing_mode() == ContentCapturingMode.NO_CONTENT
-            )
+            assert get_content_capturing_mode() == ContentCapturingMode.NO_CONTENT
         self.assertEqual(len(cm.output), 1)
         self.assertIn("INVALID_VALUE is not a valid option for ", cm.output[0])
 
@@ -180,12 +186,8 @@ class TestTelemetryHandler(unittest.TestCase):
     def setUp(self):
         self.span_exporter = InMemorySpanExporter()
         tracer_provider = TracerProvider()
-        tracer_provider.add_span_processor(
-            SimpleSpanProcessor(self.span_exporter)
-        )
-        self.telemetry_handler = get_telemetry_handler(
-            tracer_provider=tracer_provider
-        )
+        tracer_provider.add_span_processor(SimpleSpanProcessor(self.span_exporter))
+        self.telemetry_handler = get_telemetry_handler(tracer_provider=tracer_provider)
 
     def tearDown(self):
         # Clear spans and reset the singleton telemetry handler so each test starts clean
@@ -245,12 +247,8 @@ class TestTelemetryHandler(unittest.TestCase):
             },
         )
 
-        input_message = _get_single_message(
-            span_attrs, "gen_ai.input.messages"
-        )
-        output_message = _get_single_message(
-            span_attrs, "gen_ai.output.messages"
-        )
+        input_message = _get_single_message(span_attrs, "gen_ai.input.messages")
+        output_message = _get_single_message(span_attrs, "gen_ai.output.messages")
         _assert_text_message(input_message, "Human", "hello world")
         _assert_text_message(output_message, "AI", "hello back", "stop")
         self.assertEqual(invocation.attributes.get("custom_attr"), "value")
@@ -376,10 +374,7 @@ class TestTelemetryHandler(unittest.TestCase):
             instrumentation = getattr(span, "instrumentation_info", None)
 
         assert instrumentation is not None
-        assert (
-            getattr(instrumentation, "schema_url", None)
-            == Schemas.V1_37_0.value
-        )
+        assert getattr(instrumentation, "schema_url", None) == Schemas.V1_37_0.value
 
     @patch_env_vars(
         stability_mode="gen_ai_latest_experimental",
@@ -467,3 +462,68 @@ class TestTelemetryHandler(unittest.TestCase):
                 GenAI.GEN_AI_USAGE_OUTPUT_TOKENS: 22,
             },
         )
+
+
+class TestGenAiJson(unittest.TestCase):
+    def test_gen_ai_json_dumps(self):
+        class Unserializable:
+            # pylint: disable=no-self-use
+            def __str__(self):
+                return "unserializable"
+
+        obj = {
+            "bytes": b"test",
+            "datetime": datetime.datetime(2023, 1, 1, 12, 0, 0),
+            "date": datetime.date(2023, 1, 1),
+            "unserializable": Unserializable(),
+        }
+        result = gen_ai_json_dumps(obj)
+        expected = '{"bytes":"dGVzdA==","datetime":"2023-01-01T12:00:00","date":"2023-01-01","unserializable":"unserializable"}'
+        self.assertEqual(result, expected)
+
+    def test_gen_ai_json_dumps_pydantic(self):
+        class ExamplePydanticModel(BaseModel):
+            datetime_field: datetime.datetime
+            string_field: str
+
+        pydantic_model = ExamplePydanticModel(
+            datetime_field=datetime.datetime(2023, 1, 1, 12, 0, 0),
+            string_field="test",
+        )
+        # spy the model
+        pydantic_model = Mock(wraps=pydantic_model)
+
+        result = gen_ai_json_dumps({"some": {"pydantic": [pydantic_model]}})
+        self.assertEqual(result, '{"key":"pydantic"}')
+
+        pydantic_model.model_dump_json.assert_called_once()
+
+    def test_gen_ai_json_dump(self):
+        class Unserializable:
+            # pylint: disable=no-self-use
+            def __str__(self):
+                return "unserializable"
+
+        obj = {
+            "bytes": b"test",
+            "datetime": datetime.datetime(2023, 1, 1, 12, 0, 0),
+            "date": datetime.date(2023, 1, 1),
+            "unserializable": Unserializable(),
+        }
+        string_io = io.StringIO()
+        gen_ai_json_dump(obj, string_io)
+        result = string_io.getvalue()
+        expected = '{"bytes":"dGVzdA==","datetime":"2023-01-01T12:00:00","date":"2023-01-01","unserializable":"unserializable"}'
+        self.assertEqual(result, expected)
+
+    def test_gen_ai_json_dump_pydantic(self):
+        class PydanticModel:
+            # pylint: disable=no-self-use
+            def model_dump_json(self, **kwargs):
+                return '{"key":"pydantic"}'
+
+        obj = PydanticModel()
+        string_io = io.StringIO()
+        gen_ai_json_dump(obj, string_io)
+        result = string_io.getvalue()
+        self.assertEqual(result, '{"key":"pydantic"}')

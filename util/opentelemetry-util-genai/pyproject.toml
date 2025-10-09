@@ -34,7 +34,7 @@ dependencies = [
 upload = "opentelemetry.util.genai._upload:upload_completion_hook"
 
 [project.optional-dependencies]
-test = ["pytest>=7.0.0"]
+test = ["pytest>=7.0.0", "pydantic>=2.0"]
 upload = ["fsspec>=2025.9.0"]
 
 [project.urls]

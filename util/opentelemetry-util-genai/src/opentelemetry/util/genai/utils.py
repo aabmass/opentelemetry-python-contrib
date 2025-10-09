@@ -17,8 +17,9 @@ import json
 import logging
 import os
 from base64 import b64encode
+from collections.abc import Iterator
 from functools import partial
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from opentelemetry.instrumentation._semconv import (
     _OpenTelemetrySemanticConventionStability,
@@ -65,11 +66,24 @@ def get_content_capturing_mode() -> ContentCapturingMode:
         return ContentCapturingMode.NO_CONTENT
 
 
+@runtime_checkable
+class _PydanticModelDumpable(Protocol):
+    """Checkable protocol for pydantic model dump-able object.
+
+    See https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_dump
+    """
+
+    def model_dump_json(self, **kwargs: Any) -> str: ...
+
+
 class _GenAiJsonEncoder(json.JSONEncoder):
+    def encode(self, o: Any) -> str:
+        return super().encode(o)
+
     def default(self, o: Any) -> Any:
         if isinstance(o, bytes):
             return b64encode(o).decode()
-        elif isinstance(o, (datetime.datetime, datetime.date)):
+        if isinstance(o, (datetime.datetime, datetime.date)):
             return o.isoformat()
 
         try:
