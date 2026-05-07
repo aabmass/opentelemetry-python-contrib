@@ -12,6 +12,7 @@ import time
 import typing
 from typing import Any, AsyncIterator, Awaitable, Iterator, Optional, Union
 
+from google.genai._transformers import mcp_to_gemini_tool, t_tool
 from google.genai.models import AsyncModels, Models
 from google.genai.models import t as transformers
 from google.genai.types import (
@@ -25,7 +26,6 @@ from google.genai.types import (
     GenerateContentResponse,
     Tool,
     ToolListUnion,
-    ToolUnion,
     _GenerateContentParameters,
 )
 
@@ -188,142 +188,6 @@ def _to_dict(value: object):
             return {"ModelName": str(value)}
 
     return json.loads(json.dumps(value))
-
-
-def _model_dump_to_tool_definition(tool: Any) -> ToolDefinition:
-    model_dump = tool.model_dump(exclude_none=True)
-
-    name = (
-        model_dump.get("name")
-        or getattr(tool, "name", None)
-        or type(tool).__name__
-    )
-    description = model_dump.get("description") or getattr(
-        tool, "description", None
-    )
-    parameters = model_dump.get("parameters") or model_dump.get("inputSchema")
-    return FunctionToolDefinition(
-        name=name,
-        description=description,
-        parameters=parameters,
-    )
-
-
-def _clean_parameters(params: Any) -> Any:
-    """Converts parameter objects into plain dicts."""
-    if params is None:
-        return None
-    if isinstance(params, dict):
-        return params
-    if hasattr(params, "to_dict"):
-        return params.to_dict()
-    if hasattr(params, "model_dump"):
-        return params.model_dump(exclude_none=True)
-
-    try:
-        # Check if it's already a standard JSON type.
-        json.dumps(params)
-        return params
-
-    except (TypeError, ValueError):
-        return {
-            "type": "object",
-            "properties": {
-                "serialization_error": {
-                    "type": "string",
-                    "description": f"Failed to serialize parameters: {type(params).__name__}",
-                }
-            },
-        }
-
-
-def _tool_to_tool_definition(tool: Tool) -> list[ToolDefinition]:
-    definitions = []
-    if tool.function_declarations:
-        for fd in tool.function_declarations:
-            definitions.append(
-                FunctionToolDefinition(
-                    name=getattr(fd, "name", type(fd).__name__),
-                    description=getattr(fd, "description", None),
-                    parameters=_clean_parameters(
-                        getattr(fd, "parameters", None)
-                    ),
-                )
-            )
-
-    # Generic types
-    if hasattr(tool, "model_dump"):
-        exclude_fields = {"function_declarations"}
-        fields = {
-            k: v
-            for k, v in tool.model_dump().items()
-            if v is not None and k not in exclude_fields
-        }
-
-        for tool_type, _ in fields.items():
-            definitions.append(
-                GenericToolDefinition(
-                    type=tool_type,
-                    name=tool_type,
-                )
-            )
-
-    return definitions
-
-
-def _callable_tool_to_tool_definition(tool: Any) -> ToolDefinition:
-    doc = getattr(tool, "__doc__", "") or ""
-    return FunctionToolDefinition(
-        name=getattr(tool, "__name__", type(tool).__name__),
-        description=doc.strip(),
-        parameters=None,
-    )
-
-
-def _mcp_tool_to_tool_definition(tool: McpTool) -> ToolDefinition:
-    if hasattr(tool, "model_dump"):
-        return _model_dump_to_tool_definition(tool)
-
-    return FunctionToolDefinition(
-        name=getattr(tool, "name", type(tool).__name__),
-        description=getattr(tool, "description", None),
-        parameters=getattr(tool, "input_schema", None),
-    )
-
-
-def _to_tool_definition_common(tool: ToolUnion) -> list[ToolDefinition]:
-    if isinstance(tool, Tool):
-        return _tool_to_tool_definition(tool)
-
-    if callable(tool):
-        return [_callable_tool_to_tool_definition(tool)]
-
-    if _is_mcp_imported and isinstance(tool, McpTool):
-        return [_mcp_tool_to_tool_definition(tool)]
-
-    return [
-        GenericToolDefinition(
-            name="UnserializableTool",
-            type=type(tool).__name__,
-        )
-    ]
-
-
-def _to_tool_definition(tool: ToolUnion) -> list[ToolDefinition]:
-    if _is_mcp_imported and isinstance(tool, McpClientSession):
-        return []
-
-    return _to_tool_definition_common(tool)
-
-
-async def _to_tool_definition_async(
-    tool: ToolUnion,
-) -> list[ToolDefinition]:
-    if _is_mcp_imported and isinstance(tool, McpClientSession):
-        result = await tool.list_tools()
-        return [_model_dump_to_tool_definition(t) for t in result.tools]
-
-    return _to_tool_definition_common(tool)
 
 
 def _tool_def_without_parameters_attr(
@@ -490,6 +354,7 @@ class _GenerateContentInstrumentationHelper:
         is_async: bool = False,
     ):
         self._start_time = time.time_ns()
+        self._models_object = models_object
         self._otel_wrapper = otel_wrapper
         self._genai_system = _determine_genai_system(models_object)
         self._genai_request_model = model
@@ -545,6 +410,31 @@ class _GenerateContentInstrumentationHelper:
             },
             end_on_exit=end_on_exit,
         )
+
+    def end_span_and_record(
+        self,
+        span: Span,
+        request_attributes: dict[str, AttributeValue],
+        extra_attributes: dict[str, AttributeValue],
+        contents: ContentListUnion,
+        config: Optional[GenerateContentConfig],
+        candidates: list[Candidate],
+        tool_definitions: Optional[list[ToolDefinition]],
+    ):
+        final_attributes = self.create_final_attributes()
+        span.set_attributes(final_attributes)
+
+        self._maybe_log_completion_details(
+            extra_attributes,
+            request_attributes,
+            final_attributes,
+            contents,
+            candidates,
+            config,
+            tool_definitions,
+        )
+        self._record_token_usage_metric()
+        self._record_duration_metric()
 
     def create_final_attributes(self) -> dict[str, AttributeValue]:
         final_attributes = {
@@ -650,29 +540,127 @@ class _GenerateContentInstrumentationHelper:
         block_reason = response.prompt_feedback.block_reason.name.upper()
         self._error_type = f"BLOCKED_{block_reason}"
 
-    def _maybe_get_tool_definitions(self, config) -> list[ToolDefinition]:
-        if not self.experimental_sem_convs_enabled:
-            return []
-
-        if tools := _config_to_tools(config):
-            return [
-                de for tool in tools for de in _to_tool_definition(tool) if de
-            ]
-        return []
-
-    async def _maybe_get_tool_definitions_async(
-        self, config
+    def _maybe_get_tool_definitions(
+        self,
+        config: Optional[GenerateContentConfig],
     ) -> list[ToolDefinition]:
-        if not self.experimental_sem_convs_enabled:
+        if (
+            not self.experimental_sem_convs_enabled
+            or not config
+            or not config.tools
+        ):
             return []
 
         tool_definitions = []
-        if tools := _config_to_tools(config):
-            for tool in tools:
-                definitions = await _to_tool_definition_async(tool)
-                for de in definitions:
-                    if de:
-                        tool_definitions.append(de)
+        for tool in config.tools:
+            if callable(tool):
+                try:
+                    tool = t_tool(self._models_object._api_client, tool)
+                except Exception as error:  # pylint: disable=broad-exception-caught
+                    _logger.warning(
+                        "Failed to convert callable tool: %s", error
+                    )
+                    continue
+
+            if isinstance(tool, Tool):
+                if tool.function_declarations:
+                    for fd in tool.function_declarations:
+                        tool_definitions.append(
+                            FunctionToolDefinition(
+                                name=fd.name,
+                                description=fd.description,
+                                parameters=fd.parameters.model_dump()
+                                if fd.parameters
+                                else None,
+                            )
+                        )
+                # Extract generic/built-in tools (like google_maps, code_execution)
+                exclude_fields = {"function_declarations"}
+                fields = {
+                    k: v
+                    for k, v in tool.model_dump(exclude_none=True).items()
+                    if k not in exclude_fields
+                }
+                for tool_type, _ in fields.items():
+                    tool_definitions.append(
+                        GenericToolDefinition(
+                            type=tool_type,
+                            name=tool_type,
+                        )
+                    )
+        return tool_definitions
+
+    async def _maybe_get_tool_definitions_async(
+        self,
+        config: Optional[GenerateContentConfig],
+    ) -> list[ToolDefinition]:
+        # pylint: disable=R0912,R1702
+        if (
+            not self.experimental_sem_convs_enabled
+            or not config
+            or not config.tools
+        ):
+            return []
+
+        tool_definitions = []
+        for tool in config.tools:
+            if _is_mcp_imported and isinstance(tool, McpClientSession):
+                try:
+                    result = await tool.list_tools()
+                    for mcp_tool in result.tools:
+                        gemini_tool = mcp_to_gemini_tool(mcp_tool)
+                        if gemini_tool.function_declarations:
+                            for fd in gemini_tool.function_declarations:
+                                tool_definitions.append(
+                                    FunctionToolDefinition(
+                                        name=fd.name,
+                                        description=fd.description,
+                                        parameters=fd.parameters.model_dump()
+                                        if fd.parameters
+                                        else None,
+                                    )
+                                )
+                except Exception as error:  # pylint: disable=broad-exception-caught
+                    _logger.warning(
+                        "Failed to resolve MCP session tools: %s", error
+                    )
+                continue
+
+            if callable(tool):
+                try:
+                    tool = t_tool(self._models_object._api_client, tool)
+                except Exception as error:  # pylint: disable=broad-exception-caught
+                    _logger.warning(
+                        "Failed to convert callable tool: %s", error
+                    )
+                    continue
+
+            if isinstance(tool, Tool):
+                if tool.function_declarations:
+                    for fd in tool.function_declarations:
+                        tool_definitions.append(
+                            FunctionToolDefinition(
+                                name=fd.name,
+                                description=fd.description,
+                                parameters=fd.parameters.model_dump()
+                                if fd.parameters
+                                else None,
+                            )
+                        )
+                # Extract generic/built-in tools (like google_maps, code_execution)
+                exclude_fields = {"function_declarations"}
+                fields = {
+                    k: v
+                    for k, v in tool.model_dump(exclude_none=True).items()
+                    if k not in exclude_fields
+                }
+                for tool_type, _ in fields.items():
+                    tool_definitions.append(
+                        GenericToolDefinition(
+                            type=tool_type,
+                            name=tool_type,
+                        )
+                    )
 
         return tool_definitions
 
@@ -1039,22 +1027,18 @@ def _create_instrumented_generate_content(
                 helper.process_error(error)
                 raise
             finally:
-                final_attributes = helper.create_final_attributes()
-                span.set_attributes(final_attributes)
                 maybe_tool_definitions = helper._maybe_get_tool_definitions(
                     params.config
                 )
-                helper._maybe_log_completion_details(
-                    extra_attributes,
+                helper.end_span_and_record(
+                    span,
                     request_attributes,
-                    final_attributes,
+                    extra_attributes,
                     params.contents,
-                    candidates,
                     params.config,
+                    candidates,
                     maybe_tool_definitions,
                 )
-                helper._record_token_usage_metric()
-                helper._record_duration_metric()
 
     return instrumented_generate_content
 
@@ -1121,22 +1105,18 @@ def _create_instrumented_generate_content_stream(
                 helper.process_error(error)
                 raise
             finally:
-                final_attributes = helper.create_final_attributes()
-                span.set_attributes(final_attributes)
                 maybe_tool_definitions = helper._maybe_get_tool_definitions(
                     params.config
                 )
-                helper._maybe_log_completion_details(
-                    extra_attributes,
+                helper.end_span_and_record(
+                    span,
                     request_attributes,
-                    final_attributes,
+                    extra_attributes,
                     params.contents,
-                    candidates,
                     params.config,
+                    candidates,
                     maybe_tool_definitions,
                 )
-                helper._record_token_usage_metric()
-                helper._record_duration_metric()
 
     return instrumented_generate_content_stream
 
@@ -1202,24 +1182,20 @@ def _create_instrumented_async_generate_content(
                 helper.process_error(error)
                 raise
             finally:
-                final_attributes = helper.create_final_attributes()
-                span.set_attributes(final_attributes)
                 maybe_tool_definitions = (
                     await helper._maybe_get_tool_definitions_async(
                         params.config
                     )
                 )
-                helper._maybe_log_completion_details(
-                    extra_attributes,
+                helper.end_span_and_record(
+                    span,
                     request_attributes,
-                    final_attributes,
+                    extra_attributes,
                     params.contents,
-                    candidates,
                     params.config,
+                    candidates,
                     maybe_tool_definitions,
                 )
-                helper._record_token_usage_metric()
-                helper._record_duration_metric()
 
     return instrumented_generate_content
 
@@ -1278,24 +1254,20 @@ def _create_instrumented_async_generate_content_stream(  # type: ignore
                 )
             except Exception as error:  # pylint: disable=broad-exception-caught
                 helper.process_error(error)
-                helper._record_token_usage_metric()
-                final_attributes = helper.create_final_attributes()
-                span.set_attributes(final_attributes)
                 maybe_tool_definitions = (
                     await helper._maybe_get_tool_definitions_async(
                         params.config
                     )
                 )
-                helper._maybe_log_completion_details(
-                    extra_attributes,
+                helper.end_span_and_record(
+                    span,
                     request_attributes,
-                    final_attributes,
+                    extra_attributes,
                     params.contents,
-                    [],
                     params.config,
+                    [],
                     maybe_tool_definitions,
                 )
-                helper._record_duration_metric()
                 with trace.use_span(span, end_on_exit=True):
                     raise
 
@@ -1316,24 +1288,20 @@ def _create_instrumented_async_generate_content_stream(  # type: ignore
                         helper.process_error(error)
                         raise
                     finally:
-                        final_attributes = helper.create_final_attributes()
-                        span.set_attributes(final_attributes)
                         maybe_tool_definitions = (
                             await helper._maybe_get_tool_definitions_async(
                                 params.config
                             )
                         )
-                        helper._maybe_log_completion_details(
-                            extra_attributes,
+                        helper.end_span_and_record(
+                            span,
                             request_attributes,
-                            final_attributes,
+                            extra_attributes,
                             params.contents,
-                            candidates,
                             params.config,
+                            candidates,
                             maybe_tool_definitions,
                         )
-                        helper._record_token_usage_metric()
-                        helper._record_duration_metric()
 
             return _response_async_generator_wrapper()
 
