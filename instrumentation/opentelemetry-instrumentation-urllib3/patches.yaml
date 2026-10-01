@@ -1,0 +1,24 @@
+library: urllib3
+# The `instruments` extra says >=1.0.0, but older urllib3 releases do not
+# build (1.0 is Python 2 only) or import (<1.24 uses collections.Mapping) on
+# any Python this repo supports (>=3.10), so they cannot be locked.
+versions: ">=1.24,<3.0.0"
+policy:
+  max: 12
+patches:
+  # Same call shape in 1.x and 2.x; 2.x only adds the optional
+  # `preload_content` / `decode_content` parameters, so one patch with
+  # `Missing` fields. Parameter types are unified from the 2.x annotations
+  # (1.x is unannotated); `return` is narrowed from 2.x's `BaseHTTPResponse`
+  # to `HTTPResponse` to match the public `response_hook` signature.
+  # `body` is the union of the 2.x annotations (`Iterable[bytes]` became
+  # `Iterable[bytes | str]` in 2.7). The `timeout` / `body_pos` defaults are
+  # private sentinels (a bare `object()` in 1.x, the `_TYPE_DEFAULT` /
+  # `_TYPE_FAILEDTELL` enums in 2.x), so they can only be spelled `object`.
+  - name: urlopen
+    target: urllib3.connectionpool:HTTPConnectionPool.urlopen
+    types:
+      body: bytes | typing.IO[typing.Any] | collections.abc.Iterable[bytes | str] | str | None
+      timeout: urllib3.Timeout | float | object | None
+      body_pos: int | object | None
+      return: urllib3.HTTPResponse
