@@ -30,3 +30,12 @@ OTEL_SEMCONV_STABILITY_OPT_IN = "OTEL_SEMCONV_STABILITY_OPT_IN"
 Opt-in to stable semantic convention signals.
 Comma-separated list of signals, e.g. ``http``, ``http/dup``.
 """
+
+OTEL_PYTHON_PATCH_STRICT = "OTEL_PYTHON_PATCH_STRICT"
+"""
+.. envvar:: OTEL_PYTHON_PATCH_STRICT
+
+When ``true``, patchgen-generated instrumentations raise instead of logging a
+warning when the installed library version or a target signature does not
+match the lock the instrumentation was generated against. Intended for CI.
+"""

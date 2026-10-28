@@ -960,3 +960,50 @@ class TestURLLib3Instrumentor(TestBase):
         self.assertEqual(b"Hello!", response.data)
         span = self.assert_span()
         self.assertEqual(span.attributes["http.request.header.x_test"], ("Value",))
+
+    def _assert_urlopen_propagates(self, call):
+        previous_propagator = get_global_textmap()
+        try:
+            set_global_textmap(MockTextMapPropagator())
+            url = "http://mock/status/200"
+            Entry.single_register(Entry.GET, url, body="Hello!")
+            pool = urllib3.HTTPConnectionPool("mock")
+            headers = {"X-Test": "Value"}
+            response = call(pool, headers)
+            self.assertEqual(b"Hello!", response.data)
+            span = self.assert_span()
+
+            sent = {k.lower(): v for k, v in Mocket.last_request().headers.items()}
+            self.assertEqual(sent["x-test"], "Value")
+            self.assertEqual(
+                sent[MockTextMapPropagator.TRACE_ID_KEY.lower()],
+                str(span.get_span_context().trace_id),
+            )
+            # the caller's mapping is not mutated by injection
+            self.assertEqual(headers, {"X-Test": "Value"})
+        finally:
+            set_global_textmap(previous_propagator)
+
+    def test_urlopen_positional_headers_propagation(self):
+        self._assert_urlopen_propagates(lambda pool, headers: pool.urlopen("GET", "/status/200", None, headers))
+
+    def test_urlopen_keyword_headers_propagation(self):
+        self._assert_urlopen_propagates(lambda pool, headers: pool.urlopen("GET", "/status/200", headers=headers))
+
+    def test_urlopen_no_headers_propagation(self):
+        previous_propagator = get_global_textmap()
+        try:
+            set_global_textmap(MockTextMapPropagator())
+            url = "http://mock/status/200"
+            Entry.single_register(Entry.GET, url, body="Hello!")
+            pool = urllib3.HTTPConnectionPool("mock")
+            response = pool.urlopen("GET", "/status/200")
+            self.assertEqual(b"Hello!", response.data)
+            span = self.assert_span()
+            sent = dict(Mocket.last_request().headers)
+            self.assertEqual(
+                sent[MockTextMapPropagator.TRACE_ID_KEY],
+                str(span.get_span_context().trace_id),
+            )
+        finally:
+            set_global_textmap(previous_propagator)

@@ -1,0 +1,115 @@
+{
+  "format": 2,
+  "library": "urllib3",
+  "generated_with": "patchgen 0.1",
+  "python": "3.10",
+  "specifier": ">=1.24,<3.0.0",
+  "versions": [
+    "1.24", "1.25.2", "1.26.0", "2.0.2", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0",
+    "2.7.0", "2.8.0"
+  ],
+  "targets": {
+    "urlopen": [
+      {
+        "versions": ["1.24", "1.25.2", "1.26.0"],
+        "binding": "method",
+        "flavor": "sync",
+        "module": "urllib3.connectionpool",
+        "notes": [],
+        "owner": "urllib3.HTTPConnectionPool",
+        "params": [
+          ["self", "POSITIONAL_OR_KEYWORD", null, null],
+          ["method", "POSITIONAL_OR_KEYWORD", null, null],
+          ["url", "POSITIONAL_OR_KEYWORD", null, null],
+          ["body", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["headers", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["retries", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["redirect", "POSITIONAL_OR_KEYWORD", "True", null],
+          ["assert_same_host", "POSITIONAL_OR_KEYWORD", "True", null],
+          ["timeout", "POSITIONAL_OR_KEYWORD", "<object object>", null],
+          ["pool_timeout", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["release_conn", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["chunked", "POSITIONAL_OR_KEYWORD", "False", null],
+          ["body_pos", "POSITIONAL_OR_KEYWORD", "None", null],
+          ["response_kw", "VAR_KEYWORD", null, null]
+        ],
+        "qualname": "HTTPConnectionPool.urlopen",
+        "return": null
+      },
+      {
+        "versions": ["2.0.2", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"],
+        "binding": "method",
+        "flavor": "sync",
+        "module": "urllib3.connectionpool",
+        "notes": [
+          "parameter 'body': typing.IO[typing.Any] rendered as Any",
+          "parameter 'timeout': <enum '_TYPE_DEFAULT'> rendered as Any",
+          "parameter 'body_pos': <enum '_TYPE_FAILEDTELL'> rendered as Any"
+        ],
+        "owner": "urllib3.HTTPConnectionPool",
+        "params": [
+          ["self", "POSITIONAL_OR_KEYWORD", null, null],
+          ["method", "POSITIONAL_OR_KEYWORD", null, ["str"]],
+          ["url", "POSITIONAL_OR_KEYWORD", null, ["str"]],
+          ["body", "POSITIONAL_OR_KEYWORD", "None", ["bytes", "Any", "collections.abc.Iterable[bytes]", "str", "None"]],
+          ["headers", "POSITIONAL_OR_KEYWORD", "None", ["collections.abc.Mapping[str, str]", "None"]],
+          ["retries", "POSITIONAL_OR_KEYWORD", "None", ["urllib3.Retry", "bool", "int", "None"]],
+          ["redirect", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["assert_same_host", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["timeout", "POSITIONAL_OR_KEYWORD", "<_TYPE_DEFAULT.token: -1>", ["urllib3.Timeout", "float", "Any", "None"]],
+          ["pool_timeout", "POSITIONAL_OR_KEYWORD", "None", ["int", "None"]],
+          ["release_conn", "POSITIONAL_OR_KEYWORD", "None", ["bool", "None"]],
+          ["chunked", "POSITIONAL_OR_KEYWORD", "False", ["bool"]],
+          ["body_pos", "POSITIONAL_OR_KEYWORD", "None", ["int", "Any", "None"]],
+          ["preload_content", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["decode_content", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["response_kw", "VAR_KEYWORD", null, ["Any"]]
+        ],
+        "qualname": "HTTPConnectionPool.urlopen",
+        "return": ["urllib3.BaseHTTPResponse"]
+      },
+      {
+        "versions": ["2.7.0", "2.8.0"],
+        "binding": "method",
+        "flavor": "sync",
+        "module": "urllib3.connectionpool",
+        "notes": [
+          "parameter 'body': typing.IO[typing.Any] rendered as Any",
+          "parameter 'timeout': <enum '_TYPE_DEFAULT'> rendered as Any",
+          "parameter 'body_pos': <enum '_TYPE_FAILEDTELL'> rendered as Any"
+        ],
+        "owner": "urllib3.HTTPConnectionPool",
+        "params": [
+          ["self", "POSITIONAL_OR_KEYWORD", null, null],
+          ["method", "POSITIONAL_OR_KEYWORD", null, ["str"]],
+          ["url", "POSITIONAL_OR_KEYWORD", null, ["str"]],
+          ["body", "POSITIONAL_OR_KEYWORD", "None", ["bytes", "Any", "collections.abc.Iterable[bytes | str]", "str", "None"]],
+          ["headers", "POSITIONAL_OR_KEYWORD", "None", ["collections.abc.Mapping[str, str]", "None"]],
+          ["retries", "POSITIONAL_OR_KEYWORD", "None", ["urllib3.Retry", "bool", "int", "None"]],
+          ["redirect", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["assert_same_host", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["timeout", "POSITIONAL_OR_KEYWORD", "<_TYPE_DEFAULT.token: -1>", ["urllib3.Timeout", "float", "Any", "None"]],
+          ["pool_timeout", "POSITIONAL_OR_KEYWORD", "None", ["int", "None"]],
+          ["release_conn", "POSITIONAL_OR_KEYWORD", "None", ["bool", "None"]],
+          ["chunked", "POSITIONAL_OR_KEYWORD", "False", ["bool"]],
+          ["body_pos", "POSITIONAL_OR_KEYWORD", "None", ["int", "Any", "None"]],
+          ["preload_content", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["decode_content", "POSITIONAL_OR_KEYWORD", "True", ["bool"]],
+          ["response_kw", "VAR_KEYWORD", null, ["Any"]]
+        ],
+        "qualname": "HTTPConnectionPool.urlopen",
+        "return": ["urllib3.BaseHTTPResponse"]
+      }
+    ]
+  },
+  "exports": [
+    {
+      "versions": ["1.24", "1.25.2", "1.26.0"],
+      "symbols": ["HTTPConnectionPool", "HTTPResponse", "Retry", "Timeout"]
+    },
+    {
+      "versions": ["2.0.2", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"],
+      "symbols": ["BaseHTTPResponse", "HTTPConnectionPool", "HTTPResponse", "Retry", "Timeout"]
+    }
+  ]
+}

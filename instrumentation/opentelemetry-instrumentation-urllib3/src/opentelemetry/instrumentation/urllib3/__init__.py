@@ -175,16 +175,14 @@ API
 """
 
 import collections.abc
-import inspect
 import io
 import typing
 from collections.abc import Callable, Collection
 from dataclasses import dataclass
-from inspect import BoundArguments
 from timeit import default_timer
 
+import urllib3
 import urllib3.connectionpool
-import wrapt
 
 from opentelemetry.instrumentation._semconv import (
     HTTP_DURATION_HISTOGRAM_BUCKETS_NEW,
@@ -207,12 +205,12 @@ from opentelemetry.instrumentation._semconv import (
     _StabilityMode,
 )
 from opentelemetry.instrumentation.instrumentor import BaseInstrumentor
+from opentelemetry.instrumentation.urllib3 import _patches
 from opentelemetry.instrumentation.urllib3.package import _instruments
 from opentelemetry.instrumentation.urllib3.version import __version__
 from opentelemetry.instrumentation.utils import (
     is_http_instrumentation_enabled,
     suppress_http_instrumentation,
-    unwrap,
 )
 from opentelemetry.metrics import Histogram, get_meter
 from opentelemetry.propagate import inject
@@ -253,7 +251,7 @@ class RequestInfo:
     method: str
     url: str
     headers: typing.Mapping[str, str] | None
-    body: bytes | typing.IO[typing.Any] | typing.Iterable[bytes] | str | None
+    body: bytes | typing.IO[typing.Any] | typing.Iterable[bytes | str] | str | None
 
 
 _UrlFilterT = Callable[[str], str] | None
@@ -418,29 +416,23 @@ def _instrument(
     captured_response_headers: list[str] | None = None,
     sensitive_headers: list[str] | None = None,
 ):
-    urlopen_signature = inspect.signature(urllib3.connectionpool.HTTPConnectionPool.urlopen)
-
-    def instrumented_urlopen(wrapped, instance, args, kwargs):
+    def instrumented_urlopen(
+        wrapped: Callable[..., urllib3.HTTPResponse],
+        instance: urllib3.connectionpool.HTTPConnectionPool,
+        args: _patches.UrlopenArgs,
+    ) -> urllib3.HTTPResponse:
         if not is_http_instrumentation_enabled():
-            return wrapped(*args, **kwargs)
+            return args.call()
 
-        try:
-            bound_args = urlopen_signature.bind(instance, *args, **kwargs)
-        except TypeError:
-            return wrapped(*args, **kwargs)
-
-        bound_args.apply_defaults()
-
-        method = bound_args.arguments.get("method").upper()
-        headers = bound_args.arguments.get("headers")
-        body = bound_args.arguments.get("body")
-        url = _get_url(instance, bound_args, url_filter)
+        method = args.method.upper()
+        body = args.body
+        url = _get_url(instance, args.url, url_filter)
 
         if excluded_urls and excluded_urls.url_disabled(url):
-            return wrapped(*args, **kwargs)
+            return args.call()
 
         # avoid modifying original headers on inject
-        headers = headers.copy() if headers is not None else {}
+        headers = _copy_headers(args.headers)
 
         sanitized_method = sanitize_method(method)
         span_name = _get_span_name(sanitized_method)
@@ -479,12 +471,11 @@ def _instrument(
                     ),
                 )
             inject(headers)
-            bound_args.arguments["headers"] = headers
 
             # TODO: add error handling to also set exception `error.type` in new semconv
             with suppress_http_instrumentation():
                 start_time = default_timer()
-                response = wrapped(*bound_args.args[1:], **bound_args.kwargs)
+                response = args.call(headers=headers)
                 duration_s = default_timer() - start_time
             # set http status code based on semconv
             metric_attributes = {}
@@ -531,19 +522,28 @@ def _instrument(
 
             return response
 
-    wrapt.wrap_function_wrapper(
-        urllib3.connectionpool.HTTPConnectionPool,
-        "urlopen",
-        instrumented_urlopen,
-    )
+    _patches.instrument(urlopen=instrumented_urlopen)
+
+
+def _copy_headers(
+    headers: collections.abc.Mapping[str, str] | None,
+) -> collections.abc.MutableMapping[str, str]:
+    """Copy request headers so injection doesn't mutate the caller's mapping."""
+    if headers is None:
+        return {}
+    # Keep the mapping's own type where it can copy itself (dict,
+    # HTTPHeaderDict), as the instrumentation always did.
+    copy = getattr(headers, "copy", None)
+    if isinstance(headers, collections.abc.MutableMapping) and callable(copy):
+        return typing.cast("collections.abc.MutableMapping[str, str]", copy())
+    return dict(headers)
 
 
 def _get_url(
     instance: urllib3.connectionpool.HTTPConnectionPool,
-    bound_args: BoundArguments,
+    url_or_path: str,
     url_filter: _UrlFilterT,
 ) -> str:
-    url_or_path = bound_args.arguments.get("url")
     if not url_or_path.startswith("/"):
         url = url_or_path
     else:
@@ -695,4 +695,4 @@ def _record_metrics(
 
 
 def _uninstrument():
-    unwrap(urllib3.connectionpool.HTTPConnectionPool, "urlopen")
+    _patches.uninstrument()
